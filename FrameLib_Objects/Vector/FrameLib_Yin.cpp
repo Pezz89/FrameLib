@@ -3,15 +3,15 @@
 
 // Constructor
 
-FrameLib_Yin::FrameLib_Yin(FrameLib_Context context, FrameLib_Parameters::Serial *serialisedParameters, FrameLib_Proxy *proxy) : FrameLib_Processor(context, proxy, nullptr, 1, 1)
+FrameLib_Yin::FrameLib_Yin(FrameLib_Context context, FrameLib_Parameters::Serial *serialisedParameters, FrameLib_Proxy *proxy) : FrameLib_Processor(context, proxy, nullptr, 1, 1), mProcessor(*this)
 {
-	mParameters.addDouble(kF0Min, "f0Min", 0);
+	mParameters.addDouble(kF0Min, "f0Min");
 	mParameters.setClip(0.0, floor(mSamplingRate*0.5));
 	mParameters.setInstantiation();
-	mParameters.addEnum(kF0Max, "f0Max", 1);
+	mParameters.addDouble(kF0Max, "f0Max");
 	mParameters.setClip(0.0, floor(mSamplingRate*0.5));
 	mParameters.setInstantiation();
-	mParameters.addEnum(kHarmoThresh, "HarmoThresh", 2);
+	mParameters.addDouble(kHarmoThresh, "HarmoThresh");
 	mParameters.setClip(0.0, 1.0);
 	mParameters.setInstantiation();
 
@@ -46,27 +46,33 @@ void FrameLib_Yin::process()
 	unsigned long sizeIn;
     const double *input = getInput(0, &sizeIn);
 
-    unsigned long sizeOut = sizeIn;
+    unsigned long sizeOut = mProcessor.convolved_size(sizeIn, sizeIn, EdgeMode::kEdgeLinear);;
 
     requestOutputSize(0, sizeOut);
     allocateOutputs();
 
     double *output = getOutput(0, &sizeOut);
 
+
+
     if (output)
     {
-		output[0] = input[0];
-        for (unsigned long i=1; i < sizeOut; i++)
-        {
-			output[i] = input[i] + input[i - 1];
-        }
+		this->differenceFunction(input, output, sizeIn, tauMax);
     }
 }
 
-const double * FrameLib_Yin::differenceFunction(double * x, unsigned int N, double tauMax)
+void FrameLib_Yin::differenceFunction(const double * x, double * output, unsigned int N, double tauMax)
 {
 	tauMax = std::min(tauMax, static_cast<double>(N));
+	auto x_cumsum = std::make_unique<double[]>(N+1);
+	x_cumsum[0] = 0;
+	std::transform(x, x + N, x_cumsum.get() + 1, [](const double val) {return std::pow(val, 2.0);});
+	std::partial_sum(x_cumsum.get()+1, x_cumsum.get() + 1 + N, x_cumsum.get() + 1);
 
-	return nullptr;
+	
+	unsigned long convSize = mProcessor.convolved_size(N, N, EdgeMode::kEdgeLinear);
+	auto conv = std::make_unique<double[]>(convSize);
+	double x2[10] = { 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0 };
+	mProcessor.convolve(output, { x, N }, { x2, N }, EdgeMode::kEdgeLinear);
 }
 

@@ -125,6 +125,7 @@
     <ClInclude Include="..\..\..\FrameLib_Objects\Vector\FrameLib_Subframe.h" />
     <ClInclude Include="..\..\..\FrameLib_Objects\Vector\FrameLib_Vector_Objects.h" />
     <ClInclude Include="..\..\..\FrameLib_Objects\Vector\FrameLib_Vector_Template.h" />
+    <ClInclude Include="..\..\..\FrameLib_Objects\Vector\FrameLib_Yin.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\FrameLib_Dependencies\HISSTools_FFT\HISSTools_FFT.cpp" />
@@ -208,6 +209,7 @@
     <ClCompile Include="..\..\..\FrameLib_Objects\Vector\FrameLib_Sort.cpp" />
     <ClCompile Include="..\..\..\FrameLib_Objects\Vector\FrameLib_Split.cpp" />
     <ClCompile Include="..\..\..\FrameLib_Objects\Vector\FrameLib_Subframe.cpp" />
+    <ClCompile Include="..\..\..\FrameLib_Objects\Vector\FrameLib_Yin.cpp" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>15.0</VCProjectVersion>
@@ -297,6 +299,7 @@
     <ClCompile>
       <PreprocessorDefinitions>_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile />
+      <ShowIncludes>false</ShowIncludes>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

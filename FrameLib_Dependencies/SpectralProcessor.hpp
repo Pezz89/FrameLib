@@ -483,7 +483,7 @@ protected:
         rfft(io, in1.m_ptr, in1.m_size, sizes.fft_log2());
         rfft(temp, in2.m_ptr, in2.m_size, sizes.fft_log2());
     
-        Op(&io, &io, &temp, sizes.fft(), 0.25 / (T) sizes.fft());
+		Op(&io, &io, &temp, sizes.fft(), 0.25 / sizes.fft());
     
         rifft(io, sizes.fft_log2());
     }

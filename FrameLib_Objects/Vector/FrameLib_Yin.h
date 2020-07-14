@@ -3,9 +3,14 @@
 #define FRAMELIB_YIN_H
 
 #include "FrameLib_DSP.h"
+#include "../../FrameLib_Dependencies/SpectralProcessor.hpp"
+#include <numeric>
+#include <iterator>
+#include <algorithm>
 
 class FrameLib_Yin final : public FrameLib_Processor
 {
+	using EdgeMode = spectral_processor<double, FrameLib_DSP::Allocator>::EdgeMode;
 	enum ParameterList { kF0Min, kF0Max, kHarmoThresh };
 
 	struct ParameterInfo : public FrameLib_Parameters::Info { ParameterInfo(); };
@@ -26,6 +31,9 @@ private:
     // Process
     
     void process() override;
+	void differenceFunction(const double *x, double * output, unsigned int N, double tauMax);
+
+	spectral_processor<double, FrameLib_DSP::Allocator> mProcessor;
 };
 
 #endif

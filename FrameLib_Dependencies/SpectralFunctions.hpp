@@ -75,8 +75,9 @@ namespace impl
         op(dc_value, temp1, in1->realp[0], temp1, in2->realp[0], temp1, scale, 0);
         op(nq_value, temp2, in1->imagp[0], temp1, in2->imagp[0], temp1, scale, fft_size >> 1);
         
-        complex_operation(out, in1, in2, fft_size >> 1, scale, op);
-        
+        // complex_operation(out, in1, in2, fft_size >> 1, scale, op);
+		for (uintptr_t i = 1; i < (fft_size >> 1); i++)
+			op(out->realp[i], out->imagp[i], in1->realp[i], in1->imagp[i], in2->realp[i], in2->imagp[i], scale, i);
         // Set DC and Nyquist bins
         
         out->realp[0] = dc_value;
@@ -267,8 +268,9 @@ namespace impl
         template<class T>
         void operator()(T& r_out, T& i_out, const T& a, const T& b, const T& c, const T& d, const T& scale, uintptr_t i)
         {
-            r_out = scale * (a * c + b * d);
+			T temp = scale * (a * c + b * d);
             i_out = scale * (b * c - a * d);
+			r_out = temp;
         }
     };
     
@@ -277,9 +279,10 @@ namespace impl
         template<class T>
         void operator()(T& r_out, T& i_out, const T& a, const T& b, const T& c, const T& d, const T& scale, uintptr_t i)
         {
-            r_out = scale * (a * c - b * d);
+			T temp = scale * (a * c - b * d);
             i_out = scale * (a * d + b * c);
-        }
+			r_out = temp;
+		}
     };
     
     template <typename Split>
