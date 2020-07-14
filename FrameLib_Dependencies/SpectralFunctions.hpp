@@ -75,9 +75,8 @@ namespace impl
         op(dc_value, temp1, in1->realp[0], temp1, in2->realp[0], temp1, scale, 0);
         op(nq_value, temp2, in1->imagp[0], temp1, in2->imagp[0], temp1, scale, fft_size >> 1);
         
-        // complex_operation(out, in1, in2, fft_size >> 1, scale, op);
-		for (uintptr_t i = 1; i < (fft_size >> 1); i++)
-			op(out->realp[i], out->imagp[i], in1->realp[i], in1->imagp[i], in2->realp[i], in2->imagp[i], scale, i);
+        complex_operation(out, in1, in2, fft_size >> 1, scale, op);
+
         // Set DC and Nyquist bins
         
         out->realp[0] = dc_value;
