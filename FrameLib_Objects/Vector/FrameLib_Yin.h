@@ -31,9 +31,13 @@ private:
     // Process
     
     void process() override;
-	void differenceFunction(const double *x, double * output, unsigned int N, double tauMax);
+	void differenceFunction(const double *x, double * output, unsigned int N, unsigned int tauMax);
+	void cmndf(double *df, double *output, unsigned int N);
+	void getPitch(double *cmndf, double *output, const unsigned int tau_min, const unsigned int tau_max, double harmo_th);
 
 	spectral_processor<double, FrameLib_DSP::Allocator> mProcessor;
+
+	static ParameterInfo sParamInfo;
 };
 
 #endif
