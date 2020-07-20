@@ -89,7 +89,10 @@ void FrameLib_Yin::differenceFunction(const double * x, double * output, unsigne
 
 	unsigned long convSize = mProcessor.convolved_size(N, N, EdgeMode::kEdgeLinear);
 	auto conv = std::make_unique<double[]>(convSize);
-	mProcessor.convolve(conv.get(), { x, N }, { x, N }, EdgeMode::kEdgeLinear);
+	// TODO: This is wasting memory, would be better to iterate over x in reverse or in covolution using iterators
+	auto x_rev = std::make_unique<double[]>(N);
+	std::reverse_copy(x, x + N, x_rev.get());
+	mProcessor.convolve(conv.get(), { x, N }, { x_rev.get(), N }, EdgeMode::kEdgeLinear);
 
 	for (int i = 0; i < tauMax; i++) {
 		output[i] = x_cumsum[N - i] + x_cumsum[N] - x_cumsum[i] - 2.0 * conv[(N - 1) + i];
