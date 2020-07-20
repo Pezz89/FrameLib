@@ -34,12 +34,21 @@ private:
     void process() override;
 	void differenceFunction(const double *x, double * output, unsigned int N, unsigned int tauMax);
 	void cmndf(double *df, double *output, unsigned int N);
-	void getPitch(double *cmndf, double *output, const unsigned int tau_min, const unsigned int tau_max, double harmo_th);
+	void getPitch(double *cmndf, double *f, double *harm, const unsigned int tau_min, const unsigned int tau_max, double harmo_th);
 
 	spectral_processor<double, FrameLib_DSP::Allocator> mProcessor;
 
 	static ParameterInfo sParamInfo;
+
+	template<typename T>
+	void parabolic_interp(T f, T harm, double * cmndf, unsigned int tau);
 };
 
 #endif
 
+template<typename T>
+inline void FrameLib_Yin::parabolic_interp(T f, T harm, double * cmndf, unsigned int tau)
+{
+	*f = 1 / 2. * (cmndf[tau - 1] - cmndf[tau + 1]) / (cmndf[tau - 1] - 2 * cmndf[tau] + cmndf[tau + 1]) + tau;
+	*harm = cmndf[tau] - 1 / 4. * (cmndf[tau - 1] - cmndf[tau + 1]) * (*f - tau);
+}

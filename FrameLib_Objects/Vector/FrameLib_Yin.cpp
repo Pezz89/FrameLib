@@ -67,14 +67,13 @@ void FrameLib_Yin::process()
     {
 		this->differenceFunction(input, buffer.get(), sizeIn, tauMax);
 		this->cmndf(buffer.get(), buffer.get(), sizeIn);
-		this->getPitch(buffer.get(), output, tauMin, tauMax, mParameters.getValue(kHarmoThresh));
+		this->getPitch(buffer.get(), output, harmonicity, tauMin, tauMax, mParameters.getValue(kHarmoThresh));
 
 		if (*output > 0.0) {
-			harmonicity[0] = buffer[(unsigned int) *output];
 			output[0] = mSamplingRate / output[0];
 		}
 		else {
-			harmonicity[0] = *std::min_element(buffer.get(), buffer.get() + sizeIn);
+			double* min_ind = std::min_element(buffer.get(), buffer.get() + sizeIn);
 		}
     }
 }
@@ -109,21 +108,19 @@ void FrameLib_Yin::cmndf(double * df, double * output, unsigned int N)
 	output[0] = 1.0;
 }
 
-void FrameLib_Yin::getPitch(double * cmndf, double * output, const unsigned int tau_min, const unsigned int tau_max, double harmo_th)
+void FrameLib_Yin::getPitch(double * cmndf, double * f, double * harm, const unsigned int tau_min, const unsigned int tau_max, double harmo_th)
 {
 	unsigned int tau = tau_min;
-	output[0] = 0.0;
+	f[0] = 0.0;
 	// Find the first peak that is above the harmonicity threshold and is beyond the minimum frequency
 	while (tau < tau_max) {
 		if (cmndf[tau] < harmo_th) {
 			while ((tau + 1 < tau_max) && (cmndf[tau + 1] < cmndf[tau])) {
 				tau++;
 			}
-			output[0] = tau;
+			parabolic_interp(f, harm, cmndf, tau);
 			break;
 		}
 		tau++;
 	}
-
 }
-
