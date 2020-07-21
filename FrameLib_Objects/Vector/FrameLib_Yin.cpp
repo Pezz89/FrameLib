@@ -53,7 +53,7 @@ void FrameLib_Yin::process()
     const double *input = getInput(0, &sizeIn);
 	auto buffer = std::make_unique<double[]>(sizeIn);
 
-	const unsigned int tauMin = floor(mSamplingRate / mParameters.getValue(kF0Max));
+	const unsigned int tauMin = (unsigned int) floor(mSamplingRate / mParameters.getValue(kF0Max));
 	const unsigned int tauMax = (unsigned int) std::min(floor(mSamplingRate / mParameters.getValue(kF0Min)), (double) sizeIn);
 
     requestOutputSize(0, 1);
@@ -65,7 +65,7 @@ void FrameLib_Yin::process()
 
     if (output)
     {
-		this->differenceFunction(input, buffer.get(), sizeIn, tauMax);
+		this->differenceFunction(input, buffer.get(), sizeIn, tauMin, tauMax);
 		this->cmndf(buffer.get(), buffer.get(), sizeIn);
 		this->getPitch(buffer.get(), output, harmonicity, tauMin, tauMax, mParameters.getValue(kHarmoThresh));
 
@@ -78,7 +78,7 @@ void FrameLib_Yin::process()
     }
 }
 
-void FrameLib_Yin::differenceFunction(const double * x, double * output, unsigned int N, unsigned int tauMax)
+void FrameLib_Yin::differenceFunction(const double * x, double * output, unsigned int N, unsigned int tauMin, unsigned int tauMax)
 {
 	tauMax = std::min(tauMax, N);
 	auto x_cumsum = std::make_unique<double[]>(N+1);
@@ -93,7 +93,7 @@ void FrameLib_Yin::differenceFunction(const double * x, double * output, unsigne
 	std::reverse_copy(x, x + N, x_rev.get());
 	mProcessor.convolve(conv.get(), { x, N }, { x_rev.get(), N }, EdgeMode::kEdgeLinear);
 
-	for (int i = 0; i < tauMax; i++) {
+	for (unsigned int i = tauMin; i < tauMax; i++) {
 		output[i] = x_cumsum[N - i] + x_cumsum[N] - x_cumsum[i] - 2.0 * conv[(N - 1) + i];
 	}
 }
@@ -118,9 +118,31 @@ void FrameLib_Yin::getPitch(double * cmndf, double * f, double * harm, const uns
 			while ((tau + 1 < tau_max) && (cmndf[tau + 1] < cmndf[tau])) {
 				tau++;
 			}
-			parabolic_interp(f, harm, cmndf, tau);
 			break;
 		}
 		tau++;
 	}
+
+	// Parabolic interpolation requires a sample on either side of the current tau value 
+	if (tau > tau_min && tau < (tau_max - 1)) {
+		// Interpolate 3 samples around estimate to increase accuracy of f0 and harmonicity values
+		*f = 1 / 2. * (cmndf[tau - 1] - cmndf[tau + 1]) / (cmndf[tau - 1] - 2 * cmndf[tau] + cmndf[tau + 1]) + tau;
+		*harm = cmndf[tau] - 1 / 4. * (cmndf[tau - 1] - cmndf[tau + 1]) * (*f - tau);
+	}
+	else if (tau == tau_max) {
+		// If no f0 was found, calculate the harmonicity only
+		tau = *std::min_element(cmndf+tau_min, cmndf + tau_max);
+		// Parabolic interpolation requires a sample on either side of the current tau value
+		if (tau > tau_min && tau < (tau_max - 1)) {
+			*harm = cmndf[tau] - 1 / 4. * (cmndf[tau - 1] - cmndf[tau + 1]) * (*f - tau);
+		}
+		else {
+			harm[0] = cmndf[tau];
+		}
+	}
+	else {
+		f[0] = tau;
+		harm[0] = cmndf[tau];
+	}
+
 }

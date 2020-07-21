@@ -32,7 +32,7 @@ private:
     // Process
     
     void process() override;
-	void differenceFunction(const double *x, double * output, unsigned int N, unsigned int tauMax);
+	void differenceFunction(const double *x, double * output, unsigned int N, unsigned int tauMin, unsigned int tauMax);
 	void cmndf(double *df, double *output, unsigned int N);
 	void getPitch(double *cmndf, double *f, double *harm, const unsigned int tau_min, const unsigned int tau_max, double harmo_th);
 
