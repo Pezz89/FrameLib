@@ -68,13 +68,6 @@ void FrameLib_Yin::process()
 		this->differenceFunction(input, buffer.get(), sizeIn, tauMin, tauMax);
 		this->cmndf(buffer.get(), buffer.get(), sizeIn);
 		this->getPitch(buffer.get(), output, harmonicity, tauMin, tauMax, mParameters.getValue(kHarmoThresh));
-
-		if (*output > 0.0) {
-			output[0] = mSamplingRate / output[0];
-		}
-		else {
-			double* min_ind = std::min_element(buffer.get(), buffer.get() + sizeIn);
-		}
     }
 }
 
@@ -126,22 +119,23 @@ void FrameLib_Yin::getPitch(double * cmndf, double * f, double * harm, const uns
 	// Parabolic interpolation requires a sample on either side of the current tau value 
 	if (tau > tau_min && tau < (tau_max - 1)) {
 		// Interpolate 3 samples around estimate to increase accuracy of f0 and harmonicity values
-		*f = 1 / 2. * (cmndf[tau - 1] - cmndf[tau + 1]) / (cmndf[tau - 1] - 2 * cmndf[tau] + cmndf[tau + 1]) + tau;
-		*harm = cmndf[tau] - 1 / 4. * (cmndf[tau - 1] - cmndf[tau + 1]) * (*f - tau);
+		*f = mSamplingRate / (1 / 2. * (cmndf[tau - 1] - cmndf[tau + 1]) / (cmndf[tau - 1] - 2 * cmndf[tau] + cmndf[tau + 1]) + tau);
+		*harm = std::max(cmndf[tau] - 1 / 4. * (cmndf[tau - 1] - cmndf[tau + 1]) * (*f - tau), 0.0);
 	}
 	else if (tau == tau_max) {
 		// If no f0 was found, calculate the harmonicity only
 		tau = *std::min_element(cmndf+tau_min, cmndf + tau_max);
 		// Parabolic interpolation requires a sample on either side of the current tau value
 		if (tau > tau_min && tau < (tau_max - 1)) {
-			*harm = cmndf[tau] - 1 / 4. * (cmndf[tau - 1] - cmndf[tau + 1]) * (*f - tau);
+			*harm = std::max(cmndf[tau] - 1 / 4. * (cmndf[tau - 1] - cmndf[tau + 1]) * (*f - tau), 0.0);
 		}
 		else {
-			harm[0] = cmndf[tau];
+			// Check for nans as a result of DC signals
+			isnan(cmndf[tau]) ? harm[0] = 1.0 : harm[0] = cmndf[tau];
 		}
 	}
 	else {
-		f[0] = tau;
+		f[0] = mSamplingRate / tau;
 		harm[0] = cmndf[tau];
 	}
 

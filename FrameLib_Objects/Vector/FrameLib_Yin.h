@@ -7,7 +7,7 @@
 #include <numeric>
 #include <iterator>
 #include <algorithm>
-#include <numeric>
+#include <math.h>
 
 class FrameLib_Yin final : public FrameLib_Processor
 {
