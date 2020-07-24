@@ -161,18 +161,16 @@ void FrameLib_Yin::getPitch(double * cmndf, double * df, double * f, double * ha
 		is_voiced = true;
 		// Interpolate 2 samples around estimate to increase accuracy of f0 and harmonicity values
 		// Use the difference function as opposed to cmndf for frequency to ensure unbiased interpolation, as per [1]
-
-		//a = (x1 + x3 - 2 * x2) / 2;
-		//b = (x3 - x1) / 2;
-
-		*f = 1 / 2. * (cmndf[tau - 1] - cmndf[tau + 1]) / (cmndf[tau - 1] - 2 * cmndf[tau] + cmndf[tau + 1]) + tau;
+		double a = 0.5 * (df[tau-1] + df[tau+1] - 2 * df[tau]);
+		double b = 0.5 * (df[tau+1] - df[tau-1]);
+		double shift = -b / (2 * a);									// offset of interpolated minimum re current sample
+		*harm = 1.0 - std::max((cmndf[tau] - b*b / (4 * a)), 0.0);		// value of interpolated minimum, or 1.0 if interpolation overshoots
 		// cnmdf used for harmonicity
-		*harm = cmndf[tau];
-		*f = mSamplingRate / *f;
+		*f = mSamplingRate / (tau + shift);
 	}
 	else {
 		f[0] = mSamplingRate / tau;
-		harm[0] = cmndf[tau];
+		harm[0] = 1.0 - cmndf[tau];
 	}
 	if (is_voiced == false) {
 		// Check for nans as a result of DC signals
