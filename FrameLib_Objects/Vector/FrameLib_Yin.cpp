@@ -10,9 +10,10 @@ Implementation of the YIN fundamental frequency (f0) estimation algorithm, as de
 FrameLib_Yin::FrameLib_Yin(FrameLib_Context context, FrameLib_Parameters::Serial *serialisedParameters, FrameLib_Proxy *proxy) : FrameLib_Processor(context, proxy, &sParamInfo, 1, 2), mProcessor(*this)
 {
 	mParameters.addDouble(kF0Min, "f0Min", 0.0, 0);
-	mParameters.setClip(0.0, floor(mSamplingRate*0.5));
+	// Maximum frequency must be one sample less than the nyquist rate, so that all frequencies can be properly interpolated
+	mParameters.setClip(0.0, mSamplingRate*((mSamplingRate/floor(mSamplingRate*0.5))-1.0));
 	mParameters.setInstantiation();
-	mParameters.addDouble(kF0Max, "f0Max", floor(mSamplingRate*0.5), 1);
+	mParameters.addDouble(kF0Max, "f0Max", mSamplingRate*((mSamplingRate / floor(mSamplingRate*0.5)) - 1.0), 1);
 	mParameters.setClip(0.0, floor(mSamplingRate*0.5));
 	mParameters.setInstantiation();
 	mParameters.addDouble(kHarmoThresh, "HarmoThresh", 0.0, 2);
@@ -56,8 +57,9 @@ void FrameLib_Yin::process()
 	unsigned long sizeIn, sizeOut;
     const double *input = getInput(0, &sizeIn);
 
+	// Add the extra sample removed during parameter clipping to allow all frequencies to be interpolated
 	const unsigned int tau_min = (unsigned int)floor(mSamplingRate / mParameters.getValue(kF0Max));
-	const unsigned int tau_max = (unsigned int)std::min(floor(mSamplingRate / mParameters.getValue(kF0Min)), (double)sizeIn);
+	const unsigned int tau_max = (unsigned int)std::min(floor(mSamplingRate / mParameters.getValue(kF0Min)), (double)sizeIn-1.0);
 
     requestOutputSize(0, 1);
 	requestOutputSize(1, 1);
@@ -70,8 +72,8 @@ void FrameLib_Yin::process()
     {
 		auto df = alloc<double>(sizeIn);
 		auto cmndf = alloc<double>(sizeIn);
-		this->differenceFunction_slow(input, df, sizeIn, tau_max);
-		this->cmndf(df, cmndf, sizeIn);
+		this->differenceFunction_slow(input, df, sizeIn, tau_max+1);
+		this->cmndf(df, cmndf, tau_max+1);
 		this->getPitch(cmndf, df, output, harmonicity, tau_min, tau_max, mParameters.getValue(kHarmoThresh));
 		dealloc(df);
 		dealloc(cmndf);
@@ -84,7 +86,6 @@ void FrameLib_Yin::differenceFunction(const double * x, double * df, unsigned in
 	/*
 	Implement the "Difference function" as expressed in equation 6 of [1]
 	*/
-	tauMax = std::min(tauMax, N);
 	auto x_cumsum = alloc<double>(N+1);
 	x_cumsum[0] = x[0];
 	std::transform(x, x + N, x_cumsum + 1, [](const double val) {return std::pow(val, 2.0);});
@@ -93,7 +94,7 @@ void FrameLib_Yin::differenceFunction(const double * x, double * df, unsigned in
 	unsigned long convSize = mProcessor.convolved_size(N, N, EdgeMode::kEdgeLinear);
 	auto conv = alloc<double>(convSize);
 
-	// TODO: This is wasting memory, would be better to iterate over x in reverse or in covolution using iterators
+	// TODO: Replace with correlation function
 	auto x_rev = alloc<double>(N);
 	std::reverse_copy(x, x + N, x_rev);
 	mProcessor.convolve(conv, { x, N }, { x_rev, N }, EdgeMode::kEdgeLinear);
@@ -108,7 +109,6 @@ void FrameLib_Yin::differenceFunction(const double * x, double * df, unsigned in
 
 void FrameLib_Yin::differenceFunction_slow(const double * x, double * output, unsigned int N, unsigned int tauMax)
 {
-	tauMax = std::min(tauMax, N);
 	unsigned int j, tau;
 	double tmp;
 	for (tau = 0; tau < tauMax; tau++) {
@@ -117,6 +117,7 @@ void FrameLib_Yin::differenceFunction_slow(const double * x, double * output, un
 	for (tau = 1; tau < tauMax; tau++) {
 		for (j = 0; j < N-tauMax; j++) {
 			tmp = x[j] - x[j + tau];
+			// TODO: What's the best way to square a double in C++/FrameLib?
 			output[tau] += tmp * tmp;
 		}
 	}
@@ -130,7 +131,7 @@ void FrameLib_Yin::cmndf(double * df, double * cmndf, unsigned int tau_max)
 	double rolling_sum = 0.0;
 	for (unsigned int i = 1; i < tau_max; i++) {
 		rolling_sum += df[i];
-		cmndf[i] = df[i] * i / rolling_sum;
+		cmndf[i] = df[i] * (double) i / rolling_sum;
 	}
 	cmndf[0] = 1.0;
 }
@@ -138,43 +139,40 @@ void FrameLib_Yin::cmndf(double * df, double * cmndf, unsigned int tau_max)
 void FrameLib_Yin::getPitch(double * cmndf, double * df, double * f, double * harm, const unsigned int tau_min, const unsigned int tau_max, double harmo_th)
 {
 	unsigned int tau = tau_min;
+	unsigned int best_tau = tau_min;
+	// Variables to store interpolation intermediate values
+	double a, b, shift, best_f;
 	f[0] = 0.0;
-	// Find the first peak that is above the harmonicity threshold and is beyond the minimum frequency
+	double best_harm = 10000000.0;
+	// Find the first peak that is above the harmonicity threshold and is at or beyond the minimum frequency
 	while (tau < tau_max) {
-		if (cmndf[tau] < (1.0 - harmo_th)) {
-			while ((tau + 1 < tau_max) && (cmndf[tau + 1] < cmndf[tau])) {
-				tau++;
+		// If the index is a local minima...
+		if ((cmndf[tau - 1] > cmndf[tau]) && (cmndf[tau + 1] > cmndf[tau])) {
+			// Interpolate 2 samples around estimate to increase accuracy of f0 and harmonicity values
+			// Use the difference function as opposed to cmndf for frequency to ensure unbiased interpolation, as per [1]
+			a = 0.5 * (cmndf[tau - 1] + cmndf[tau + 1] - 2.0 * cmndf[tau]);
+			b = 0.5 * (cmndf[tau + 1] - cmndf[tau - 1]);
+			// TODO: Is this clipping correct? Or should the CMNDF function never go above 1.0 or below 0.0 even with interpolation?
+			*harm = std::max((cmndf[tau] - b * b / (4.0 * a)), 0.0); // value of interpolated minimum, or 0.0 if interpolation undershoots
+			best_harm = std::min(best_harm, *harm);
+			shift = -b / (2.0 * a);											// offset of interpolated minimum re current sample
+			best_f = mSamplingRate / (tau + shift);
+			best_tau = tau;
+			if (*harm < harmo_th) {
+				*f = best_f;
+				break;
 			}
-			break;
 		}
 		tau++;
 	}
-	
-	bool is_voiced = true;
+
 	if (tau == tau_max) {
-		// If no f0 was found, calculate the harmonicity only
-		tau = *std::min_element(cmndf + tau_min, cmndf + tau_max);
-		is_voiced = false;
-	}
-	// Parabolic interpolation requires a sample on either side of the current tau value 
-	if (tau > tau_min && tau < (tau_max - 1)) {
-		is_voiced = true;
-		// Interpolate 2 samples around estimate to increase accuracy of f0 and harmonicity values
-		// Use the difference function as opposed to cmndf for frequency to ensure unbiased interpolation, as per [1]
-		double a = 0.5 * (df[tau-1] + df[tau+1] - 2 * df[tau]);
-		double b = 0.5 * (df[tau+1] - df[tau-1]);
-		double shift = -b / (2 * a);									// offset of interpolated minimum re current sample
-		*harm = 1.0 - std::max((cmndf[tau] - b*b / (4 * a)), 0.0);		// value of interpolated minimum, or 1.0 if interpolation overshoots
-		// cnmdf used for harmonicity
-		*f = mSamplingRate / (tau + shift);
-	}
-	else {
-		f[0] = mSamplingRate / tau;
-		harm[0] = 1.0 - cmndf[tau];
-	}
-	if (is_voiced == false) {
 		// Check for nans as a result of DC signals
-		isnan(cmndf[tau]) ? harm[0] = 1.0 : harm[0] = cmndf[tau];
-		f[0] = 0.0;
+		if (isnan(cmndf[best_tau])) {
+			*harm = 3.0;
+			*f = 0.0;
+			return;
+		}
+		*f = best_f;
 	}
 }
