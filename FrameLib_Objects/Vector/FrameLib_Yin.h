@@ -34,8 +34,9 @@ private:
     void process() override;
 	void differenceFunction(const double *x, double * output, unsigned int N, unsigned int tauMax);
 	void differenceFunction_slow(const double *x, double * output, unsigned int N, unsigned int tauMax);
+	void differenceFunction_slow_dechevigne(const double * x, double * output, unsigned int N, unsigned int tau_max);
 	void cmndf(double *df, double *output, unsigned int N);
-	void getPitch(double *cmndf, double *df, double *f, double *harm, const unsigned int tau_min, const unsigned int tau_max, double harmo_th);
+	void getPitch(double *cmndf, double *df, double *f, double *harm, const unsigned int tau_min, const unsigned int tau_max, double harmo_th, double * tau_out);
 
 	spectral_processor<double, FrameLib_DSP::Allocator> mProcessor;
 
