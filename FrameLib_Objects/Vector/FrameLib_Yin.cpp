@@ -199,17 +199,19 @@ void FrameLib_Yin::getPitch(double * cmndf, double * df, double * f, double * ha
 				unsigned int c = std::min(tau * 2, tau_max);
 				tau++;
 				while (tau < c-1) {
-					// Interpolate 2 samples around estimate to increase accuracy of f0 and harmonicity values
-					// Use the difference function as opposed to cmndf for frequency to ensure unbiased interpolation, as per [1]
-					a = 0.5 * (cmndf[tau - 1] + cmndf[tau + 1] - 2.0 * cmndf[tau]);
-					b = 0.5 * (cmndf[tau + 1] - cmndf[tau - 1]);
-					// TODO: Is this clipping correct? Or should the CMNDF function never go above 1.0 or below 0.0 even with interpolation?
-					*harm = std::max((cmndf[tau] - b * b / (4.0 * a)), 0.0); // value of interpolated minimum, or 0.0 if interpolation undershoots
-					if (*harm < best_harm) {
-						best_harm = *harm;
-						shift = -b / (2.0 * a);											// offset of interpolated minimum re current sample
-						best_f = mSamplingRate / ((double)tau + shift);
-						best_tau = tau;
+					if ((cmndf[tau - 1] > cmndf[tau]) && (cmndf[tau + 1] > cmndf[tau])) {
+						// Interpolate 2 samples around estimate to increase accuracy of f0 and harmonicity values
+						// Use the difference function as opposed to cmndf for frequency to ensure unbiased interpolation, as per [1]
+						a = 0.5 * (cmndf[tau - 1] + cmndf[tau + 1] - 2.0 * cmndf[tau]);
+						b = 0.5 * (cmndf[tau + 1] - cmndf[tau - 1]);
+						// TODO: Is this clipping correct? Or should the CMNDF function never go above 1.0 or below 0.0 even with interpolation?
+						*harm = std::max((cmndf[tau] - b * b / (4.0 * a)), 0.0); // value of interpolated minimum, or 0.0 if interpolation undershoots
+						if (*harm < best_harm) {
+							best_harm = *harm;
+							shift = -b / (2.0 * a);											// offset of interpolated minimum re current sample
+							best_f = mSamplingRate / ((double)tau + shift);
+							best_tau = tau;
+						}
 					}
 					tau++;
 				}
