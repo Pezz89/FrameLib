@@ -68,6 +68,8 @@ void FrameLib_Yin::process()
     allocateOutputs();
     double *output = getOutput(0, &sizeOut);
 	double *harmonicity = getOutput(1, &sizeOut);
+
+	// Output cmndf function and tau to plot and debug in real-time
 	double *cmndf = getOutput(2, &sizeCMNDF);
 	double *tau_out = getOutput(3, &sizeOut);
 
@@ -76,7 +78,7 @@ void FrameLib_Yin::process()
 		auto w_len = sizeIn - tau_max;
 		auto df = alloc<double>(tau_max+1);
 		//auto cmndf = alloc<double>(tau_max+1);
-		this->differenceFunction_slow_dechevigne(input, df, w_len, tau_max);
+		this->differenceFunction_slow(input, df, w_len, tau_max);
 		this->cmndf(df, cmndf, tau_max);
 		this->getPitch(cmndf, df, output, harmonicity, tau_min, tau_max, mParameters.getValue(kHarmoThresh), tau_out);
 		dealloc(df);
@@ -89,6 +91,7 @@ void FrameLib_Yin::differenceFunction(const double * x, double * df, unsigned in
 {
 	/*
 	Implement the "Difference function" as expressed in equation 6 of [1]
+	Fast FFT based implementation based off of python implementation. Resulting function is similar,but not identical to that implemented by DeChevigne
 	*/
 	auto x_cumsum = alloc<double>(N+1);
 	x_cumsum[0] = x[0];
@@ -111,10 +114,10 @@ void FrameLib_Yin::differenceFunction(const double * x, double * df, unsigned in
 	dealloc(x_rev);
 }
 
-void FrameLib_Yin::differenceFunction_slow_dechevigne(const double * x, double * output, unsigned int N, unsigned int tau_max)
+void FrameLib_Yin::differenceFunction_slow(const double * x, double * output, unsigned int N, unsigned int tau_max)
 {
 	/*
-	Implement the "Difference function" as expressed in equation 6 of [1], copything method implemented by Alaine Dechevigne in his Matlab implementation.
+	Implement the "Difference function" as expressed in equation 6 of [1], copying the method implemented by Alaine Dechevigne in his Matlab implementation.
 	*/
 	unsigned int m, t;
 	double tmp;
@@ -132,28 +135,6 @@ void FrameLib_Yin::differenceFunction_slow_dechevigne(const double * x, double *
 	for (t = 0; t < tau_max + 1; t++) {
 		output[t] /= N;
 		output[t] /= 2.0;
-	}
-}
-
-void FrameLib_Yin::differenceFunction_slow(const double * x, double * output, unsigned int N, unsigned int tauMax)
-{
-	unsigned int j, tau;
-	double tmp;
-	for (tau = 0; tau < tauMax; tau++) {
-		output[tau] = 0.;
-	}
-	for (tau = 1; tau < tauMax; tau++) {
-		for (j = 0; j < tauMax; j++) {
-			if (j + tau < N) {
-				tmp = x[j] - x[j + tau];
-			}
-			else {
-				tmp = x[j];
-			}
-
-			// TODO: What's the best way to square a double in C++/FrameLib?
-			output[tau] += tmp * tmp;
-		}
 	}
 }
 
@@ -225,6 +206,7 @@ void FrameLib_Yin::getPitch(double * cmndf, double * df, double * f, double * ha
 	if (tau == tau_max) {
 		// Check for nans as a result of DC signals
 		if (isnan(cmndf[best_tau])) {
+			// TODO calculate maximum aperiodicity value possible?
 			*harm = 3.0;
 			*f = 0.0;
 			*tau_out = 0.0;
