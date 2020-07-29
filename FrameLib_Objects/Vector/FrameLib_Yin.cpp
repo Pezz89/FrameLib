@@ -17,7 +17,7 @@ FrameLib_Yin::FrameLib_Yin(FrameLib_Context context, FrameLib_Parameters::Serial
 	mParameters.setClip(0.0, floor(mSamplingRate*0.5));
 	mParameters.setInstantiation();
 	mParameters.addDouble(kHarmoThresh, "HarmoThresh", 0.0, 2);
-	mParameters.setClip(0.0, 1.0);
+	mParameters.setClip(0.0, 3.0);
 	mParameters.setInstantiation();
 
 	mParameters.set(serialisedParameters);
@@ -179,13 +179,14 @@ void FrameLib_Yin::getPitch(double * cmndf, double * df, double * f, double * ha
 			if (*harm < harmo_th) {
 				unsigned int c = std::min(tau * 2, tau_max);
 				tau++;
+				// If a harmonic is found, check that there isn't a lower one in the next octave, which is more likely to be the actual fundamental
 				while (tau < c-1) {
 					if ((cmndf[tau - 1] > cmndf[tau]) && (cmndf[tau + 1] > cmndf[tau])) {
 						// Interpolate 2 samples around estimate to increase accuracy of f0 and harmonicity values
 						// Use the difference function as opposed to cmndf for frequency to ensure unbiased interpolation, as per [1]
 						a = 0.5 * (cmndf[tau - 1] + cmndf[tau + 1] - 2.0 * cmndf[tau]);
 						b = 0.5 * (cmndf[tau + 1] - cmndf[tau - 1]);
-						// TODO: Is this clipping correct? Or should the CMNDF function never go above 1.0 or below 0.0 even with interpolation?
+						// TODO: Is this clipping correct? Or should the CMNDF function never go below 0.0 even with interpolation?
 						*harm = std::max((cmndf[tau] - b * b / (4.0 * a)), 0.0); // value of interpolated minimum, or 0.0 if interpolation undershoots
 						if (*harm < best_harm) {
 							best_harm = *harm;
