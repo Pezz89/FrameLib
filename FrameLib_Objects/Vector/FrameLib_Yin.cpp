@@ -17,7 +17,7 @@ FrameLib_Yin::FrameLib_Yin(FrameLib_Context context, FrameLib_Parameters::Serial
 	mParameters.setClip(0.0, floor(mSamplingRate*0.5));
 	mParameters.setInstantiation();
 	mParameters.addDouble(kHarmoThresh, "HarmoThresh", 0.0, 2);
-	mParameters.setClip(0.0, 3.0);
+	mParameters.setMin(0.0);
 	mParameters.setInstantiation();
 
 	mParameters.set(serialisedParameters);
@@ -28,17 +28,16 @@ FrameLib_Yin::ParameterInfo FrameLib_Yin::sParamInfo;
 
 FrameLib_Yin::ParameterInfo::ParameterInfo()
 {
-	add("Sets the maximum output length. The output length will be M + N - 1 where M and N are the sizes of the two inputs respectively");
-	add("Sets the type of input expected / output produced.");
-	add("Sets the type of input expected / output produced.");
+	add("Sets the minimum fundamental frequency that can be detected by YIN.");
+	add("Sets the maximum fundamental frequency that can be detected by YIN.");
+	add("Sets the harmonicity threshold. Harmonicities above this threshold are classified as inharmonic, and the minimum of the CMNDF is taken.");
 }
 
 // Info
 
 std::string FrameLib_Yin::objectInfo(bool verbose)
 {
-    return formatInfo("Output the cummulative sum of the input frame",
-                   "Output the cummulative sum of the input frame", verbose);
+    return formatInfo("Implementation of the YIN fundamental frequency estimation algorithm", "Implementation of the YIN fundamental frequency estimation algorithm", verbose);
 }
 
 std::string FrameLib_Yin::inputInfo(unsigned long idx, bool verbose)
@@ -48,7 +47,24 @@ std::string FrameLib_Yin::inputInfo(unsigned long idx, bool verbose)
 
 std::string FrameLib_Yin::outputInfo(unsigned long idx, bool verbose)
 {
-    return "cumulative sum of the frame";
+	switch (idx) {
+		case 0:
+			return formatInfo("Fundamental frequency (hz) frame", "Fundamental frequency (hz) frame", idx, verbose);
+			break;
+		case 1:
+			return formatInfo("Harmonicity", "Harmonicity", idx, verbose);
+			break;
+		case 2:
+			return formatInfo("Cumulative normalised distribution function", "Cumulative normalised distribution function", idx, verbose);
+			break;
+		case 3:
+			return formatInfo("Tau", "Tau", idx, verbose);
+			break;
+		default:
+			return "";
+			break;
+	}
+		
 }
 
 // Process
@@ -159,6 +175,7 @@ void FrameLib_Yin::getPitch(double * cmndf, double * df, double * f, double * ha
 	double a, b, shift, best_f;
 	f[0] = 0.0;
 	best_f = 0.0;
+	// TODO: Replace with double maximum (how's that number found in C++?)
 	double best_harm = 10000000.0;
 	// Find the first peak that is above the harmonicity threshold and is at or beyond the minimum frequency
 	while (tau < tau_max) {
@@ -207,7 +224,7 @@ void FrameLib_Yin::getPitch(double * cmndf, double * df, double * f, double * ha
 	if (tau == tau_max) {
 		// Check for nans as a result of DC signals
 		if (isnan(cmndf[best_tau])) {
-			// TODO calculate maximum aperiodicity value possible?
+			// TODO: calculate maximum aperiodicity value possible?
 			*harm = 3.0;
 			*f = 0.0;
 			*tau_out = 0.0;
