@@ -51,15 +51,17 @@ void FrameLib_CircleMean::process()
 	auto in_180 = alloc<double>(sizeIn);
 	auto range = mParameters.getValue(kRangeMax);
 	for (int i = 0; i < sizeIn; i++) {
-		in_180[i] = fmod((input[i] - (range*0.5)), range);
+		in_180[i] = fmod(fmod((input[i] - (range*0.5)), range) + range, range);
 	}
     if (output)
     {
+		double var = statVariance(input, sizeIn);
 		if (statVariance(input, sizeIn) < statVariance(in_180, sizeIn)) {
 			*output = statMean(input, sizeIn);
 		}
 		else {
-			*output = fmod(statMean(in_180, sizeIn) + (range*0.5), range);
+			double temp = statMean(in_180, sizeIn);
+			*output = fmod(fmod(statMean(in_180, sizeIn) + (range*0.5), range) + range, range);
 		}
     }
 	dealloc(in_180);
