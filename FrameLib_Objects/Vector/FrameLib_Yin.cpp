@@ -170,20 +170,9 @@ void FrameLib_Yin::cmndf(double * df, double * cmndf, unsigned int tau_max)
 void FrameLib_Yin::getPitch(double * cmndf, double * df, double * f, double * harm, const unsigned int tau_min, const unsigned int tau_max, double harmo_th, double * tau_out)
 {
 	unsigned int tau = tau_min;
-	unsigned int thr = 0;
-
-	auto best_tau = std::make_unique<unsigned int[]>(5);
-	std::fill(best_tau.get(), best_tau.get() + 5, tau_max);
-	//best_tau = tau_min;
+	unsigned int best_tau = tau_min;
 	// Variables to store interpolation intermediate values
-	double a, b, shift;
-
-	auto best_f = std::make_unique<double[]>(5);
-	std::fill(best_f.get(), best_f.get() + 5, 0.0);
-	//best_f = 0.0
-	auto best_harm = std::make_unique<double[]>(5);
-	std::fill(best_harm.get(), best_harm.get() + 5, 10000000.0);
-
+	double a, b, shift, best_f;
 	f[0] = 0.0;
 	best_f = 0.0;
 	// TODO: Replace with double maximum (how's that number found in C++?)
@@ -198,28 +187,13 @@ void FrameLib_Yin::getPitch(double * cmndf, double * df, double * f, double * ha
 			b = 0.5 * (cmndf[tau + 1] - cmndf[tau - 1]);
 			// TODO: Is this clipping correct? Or should the CMNDF function never go above 1.0 or below 0.0 even with interpolation?
 			*harm = std::max((cmndf[tau] - b * b / (4.0 * a)), 0.0); // value of interpolated minimum, or 0.0 if interpolation undershoots
-
-			if (*harm < harmo_th) {
-				thr = 1;
-			}
-			else if (*harm < harmo_th*1.5){
-				thr = 2;
-			}
-			else if (*harm < harmo_th*2.0) {
-				thr = 3;
-			}
-			else if (*harm < harmo_th*2.5) {
-				thr = 4;
-			}
-			else {
-				thr = 0;
-			}
-			if (thr > 0 && best_tau[thr] == tau_max) {
-				best_harm[thr] = *harm;
+			if (*harm < best_harm) {
+				best_harm = *harm;
 				shift = -b / (2.0 * a);											// offset of interpolated minimum re current sample
-				best_f[thr] = mSamplingRate / ((double)tau + shift);
-				best_tau[thr] = tau;
-
+				best_f = mSamplingRate / ((double)tau + shift);
+				best_tau = tau;
+			}
+			if (*harm < harmo_th) {
 				unsigned int c = std::min(tau * 2, tau_max);
 				tau++;
 				// If a harmonic is found, check that there isn't a lower one in the next octave, which is more likely to be the actual fundamental
@@ -231,37 +205,23 @@ void FrameLib_Yin::getPitch(double * cmndf, double * df, double * f, double * ha
 						b = 0.5 * (cmndf[tau + 1] - cmndf[tau - 1]);
 						// TODO: Is this clipping correct? Or should the CMNDF function never go below 0.0 even with interpolation?
 						*harm = std::max((cmndf[tau] - b * b / (4.0 * a)), 0.0); // value of interpolated minimum, or 0.0 if interpolation undershoots
-						if (*harm < best_harm[thr]) {
-							best_harm[thr] = *harm;
+						if (*harm < best_harm) {
+							best_harm = *harm;
 							shift = -b / (2.0 * a);											// offset of interpolated minimum re current sample
-							best_f[thr] = mSamplingRate / ((double)tau + shift);
-							best_tau[thr] = tau;
+							best_f = mSamplingRate / ((double)tau + shift);
+							best_tau = tau;
 						}
 					}
 					tau++;
 				}
-				// If a suitable harmonic has been found
-				if (thr == 1) {
-					*f = best_f[0];
-					*tau_out = (double)best_tau[0];
-					break;
-				}
+				*f = best_f;
+				break;
 			}
 		}
 		tau++;
 	}
-
+	*tau_out = (double)best_tau;
 	if (tau == tau_max) {
-		int bh_ind = 0;
-		for (int i = 1; i < 5; i++) {
-			if (best_tau[i] < tau_max) {
-				bh_ind = i;
-				break;
-			}
-		}
-		unsigned int bt = best_tau[bh_ind];
-		double bh = best_harm[bh_ind];
-		double bf = best_f[bh_ind];
 		// Check for nans as a result of DC signals
 		if (isnan(cmndf[best_tau])) {
 			// TODO: calculate maximum aperiodicity value possible?
@@ -270,8 +230,7 @@ void FrameLib_Yin::getPitch(double * cmndf, double * df, double * f, double * ha
 			*tau_out = 0.0;
 			return;
 		}
-		*f = bf;
-		*harm = bh;
-		*tau_out = bt;
+		*f = best_f;
+		*harm = best_harm;
 	}
 }

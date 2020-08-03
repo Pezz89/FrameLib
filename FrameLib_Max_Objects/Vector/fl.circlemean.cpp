@@ -3,6 +3,6 @@
 
 extern "C" int C74_EXPORT main(void)
 {
-    FrameLib_MaxClass_Expand<FrameLib_Yin>::makeClass("fl.circlemean~");
+    FrameLib_MaxClass_Expand<FrameLib_CircleMean>::makeClass("fl.circlemean~");
 }
 
