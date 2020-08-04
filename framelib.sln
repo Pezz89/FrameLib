@@ -1165,6 +1165,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fl.yin~", "Projects\Visual_
 	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "fl.circlemean~", "Projects\Visual_Studio\03_Max_Objects\fl.circlemean.vcxproj", "{FAEF181D-391D-4920-9131-10AC65A7DAFE}"
+	ProjectSection(ProjectDependencies) = postProject
+		{15B7B576-7125-46F8-AFF1-976F8E4685A7} = {15B7B576-7125-46F8-AFF1-976F8E4685A7}
+		{A4E2A0AE-C945-4C8A-BAD6-B40660578BC3} = {A4E2A0AE-C945-4C8A-BAD6-B40660578BC3}
+		{818BB3B2-7651-4EBD-A476-E0C2E0AEC1DD} = {818BB3B2-7651-4EBD-A476-E0C2E0AEC1DD}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

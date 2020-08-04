@@ -7,7 +7,7 @@ Implementation of the YIN fundamental frequency (f0) estimation algorithm, as de
 
 // Constructor
 
-FrameLib_CircleMean::FrameLib_CircleMean(FrameLib_Context context, FrameLib_Parameters::Serial *serialisedParameters, FrameLib_Proxy *proxy) : FrameLib_Processor(context, proxy, &sParamInfo, 1, 4)
+FrameLib_CircleMean::FrameLib_CircleMean(FrameLib_Context context, FrameLib_Parameters::Serial *serialisedParameters, FrameLib_Proxy *proxy) : FrameLib_Processor(context, proxy, &sParamInfo, 1, 1)
 {
 	mParameters.addDouble(kRangeMax, "RangeMax", 360.0, 0);
 	mParameters.setMin(0.0);
@@ -45,24 +45,43 @@ void FrameLib_CircleMean::process()
 {
 	unsigned long sizeIn, sizeOut;
     const double *input = getInput(0, &sizeIn);
-    requestOutputSize(0, 1);
+    requestOutputSize(0, sizeIn);
     allocateOutputs();
     double *output = getOutput(0, &sizeOut);
 	auto in_180 = alloc<double>(sizeIn);
+	auto in_90 = alloc<double>(sizeIn);
+	auto in_270 = alloc<double>(sizeIn);
+	auto diffs = alloc<double>(4);
+	auto absDiffs = alloc<double>(4);
+	double avg, avg90, avg180, avg270, diff0, diff90, diff180, diff270;
+	int argMinInd;
+
 	auto range = mParameters.getValue(kRangeMax);
 	for (int i = 0; i < sizeIn; i++) {
 		in_180[i] = fmod(fmod((input[i] - (range*0.5)), range) + range, range);
+		in_90[i] = fmod(fmod((input[i] - (range*0.75)), range) + range, range);
+		in_270[i] = fmod(fmod((input[i] - (range*0.25)), range) + range, range);
 	}
     if (output)
     {
-		double var = statVariance(input, sizeIn);
-		if (statVariance(input, sizeIn) < statVariance(in_180, sizeIn)) {
-			*output = statMean(input, sizeIn);
-		}
-		else {
-			double temp = statMean(in_180, sizeIn);
-			*output = fmod(fmod(statMean(in_180, sizeIn) + (range*0.5), range) + range, range);
+		avg180 = fmod(fmod(statMean(in_180, sizeIn) + (range*0.5), range) + range, range);
+		avg90 = fmod(fmod(statMean(in_90, sizeIn) + (range*0.75), range) + range, range);
+		avg270 = fmod(fmod(statMean(in_270, sizeIn) + (range*0.25), range) + range, range);
+		avg = statMean(input, sizeIn);
+		for (int i = 0; i < sizeIn; i++) {
+			diffs[0] = input[i] - avg;
+			diffs[1] = in_90[i] - avg90;
+			diffs[2] = in_180[i] - avg180;
+			diffs[3] = in_270[i] - avg270;
+			for (int j = 0; j < 4; j++) {
+				absDiffs[j] = abs(diffs[j]);
+			}
+
+			argMinInd = (int) statArgMin(absDiffs, 4);
+			output[i] = diffs[argMinInd];
 		}
     }
+	dealloc(diffs);
+	dealloc(absDiffs);
 	dealloc(in_180);
 }
