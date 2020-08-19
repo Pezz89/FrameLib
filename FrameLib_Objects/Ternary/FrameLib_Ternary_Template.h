@@ -4,14 +4,14 @@
 
 #include "FrameLib_DSP.h"
 
-template <typename Op> class FrameLib_TernaryOp final : public FrameLib_Processor
+template <typename Op>
+class FrameLib_TernaryOp final : public FrameLib_Processor
 {
     enum ParameterList { kMismatchMode };
     enum MismatchModes { kWrap, kShrink, kExtend};
     
     class EnlargedInput
     {
-        
     public:
         
         EnlargedInput(FrameLib_TernaryOp *owner, const double *input, unsigned long size, unsigned long extendedSize, MismatchModes mode)
@@ -61,15 +61,16 @@ template <typename Op> class FrameLib_TernaryOp final : public FrameLib_Processo
         ParameterInfo()
         {
             add("Sets the mode used when dealing with mismatched input lengths: "
-                "wrap -   smaller right inputs are read modulo against larger left input. "
-                "shrink - the output length is set to the size of the smaller input. "
-                "extend - smaller right inputs are extended by repeating their final value");
+                "wrap - smaller right inputs are read modulo against larger left input. "
+                "shrink - the output length is set to the length of the smaller input. "
+                "extend - smaller right inputs are extended by repeating their final value.");
         }
     };
     
 
 public:
-    FrameLib_TernaryOp(FrameLib_Context context, FrameLib_Parameters::Serial *serialisedParameters, FrameLib_Proxy *proxy) : FrameLib_Processor(context, proxy, getParameterInfo(), 3, 1)
+    FrameLib_TernaryOp(FrameLib_Context context, const FrameLib_Parameters::Serial *serialisedParameters, FrameLib_Proxy *proxy)
+    : FrameLib_Processor(context, proxy, getParameterInfo(), 3, 1)
     {
         mParameters.addEnum(kMismatchMode, "mismatch");
         mParameters.addEnumItem(kWrap, "wrap");
@@ -77,6 +78,9 @@ public:
         mParameters.addEnumItem(kExtend, "extend");
         mParameters.setInstantiation();
 
+        setInputMode(1, false, false, false);
+        setInputMode(2, false, false, false);
+        
         mParameters.set(serialisedParameters);
         
         mMismatchMode = static_cast<MismatchModes>(mParameters.getInt(kMismatchMode));
@@ -84,8 +88,9 @@ public:
     
     std::string objectInfo(bool verbose) override
     {
-        return formatInfo("#: Calculation is performed on triplets of values in turn. The output is a frame at least as long as the left most frame."
-                          "When frames mismatch in size the result depends on the setting of the mismatch parameter.",
+        return formatInfo("#: Calculation is performed on triplets of values in turn. "
+                          "The output is a frame at least as long as the leftmost frame. "
+                          "When frames mismatch in length the result depends on the mismatch parameter.",
                           "#.", getDescriptionString(), verbose);
     }
 
@@ -96,13 +101,13 @@ public:
             case 0: return "Input";
             case 1: return "Parameter 1";
             case 2: return "Parameter 2";
-            default: return "Unknown input";
+            default: return "Unknown Input";
         }
     }
 
     std::string outputInfo(unsigned long idx, bool verbose) override
     {
-        return "Result";
+        return "Output";
     }
     
 private:
@@ -177,7 +182,7 @@ private:
 
 // Ternary Functor
 
-template<double func(double, double, double)>
+template <double func(double, double, double)>
 struct Ternary_Functor
 {
     double operator()(double x, double y, double z) { return func(x, y, z); }
@@ -185,7 +190,7 @@ struct Ternary_Functor
 
 // Ternary (Function Version)
 
-template<double func(double, double, double)>
+template <double func(double, double, double)>
 using  FrameLib_Ternary = FrameLib_TernaryOp<Ternary_Functor<func>>;
 
 #endif

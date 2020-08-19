@@ -5,25 +5,30 @@
 #include <complex>
 #include "FrameLib_DSP.h"
 
-// OPT - vectorise where appropriate
-
 // Complex Unary (Operator Version)
 
-template <typename Op> class FrameLib_Complex_UnaryOp final : public FrameLib_Processor
+template <typename Op>
+class FrameLib_Complex_UnaryOp final : public FrameLib_Processor
 {
-    
 public:
     
     // Constructor
     
-    FrameLib_Complex_UnaryOp(FrameLib_Context context, FrameLib_Parameters::Serial *serialisedParameters, FrameLib_Proxy *proxy) : FrameLib_Processor(context, proxy, nullptr, 2, 2) {}
+    FrameLib_Complex_UnaryOp(FrameLib_Context context, const FrameLib_Parameters::Serial *serialisedParameters, FrameLib_Proxy *proxy)
+    : FrameLib_Processor(context, proxy, nullptr, 2, 2)
+    {
+        mParameters.set(serialisedParameters);
+    }
     
     // Info
     
     std::string objectInfo(bool verbose) override
     {
-        return formatInfo("Calculates the # of each complex value at the inputs: Both inputs and outputs are split into real and imaginary parts. The outputs are frames of the same size as the longer of the two inputs. If one input is shorter than the other it is padded with zeros to the length of the other before calculation.",
-                       "Calculates the # of each complex value at the inputs.", getOpString(), verbose);
+        return formatInfo("Calculates the # of each complex value at the inputs: "
+                          "Both input and output are split into real and imaginary parts. "
+                          "The outputs are frames of the same length as the longer of the two inputs. "
+                          "If inputs are mismatched then the shorter input is padded with zeros.",
+                          "Calculates the # of each complex value at the inputs.", getOpString(), verbose);
     }
 
     std::string inputInfo(unsigned long idx, bool verbose) override
@@ -96,7 +101,7 @@ private:
 
 // Complex Unary Functor
 
-template<std::complex<double> func(const std::complex<double> &)>
+template <std::complex<double> func(const std::complex<double> &)>
 struct Complex_Unary_Functor
 {
     std::complex<double> operator()(std::complex<double> x) { return func(x); }
@@ -104,7 +109,7 @@ struct Complex_Unary_Functor
 
 // Complex Unary (Function Version)
 
-template<std::complex<double> func(const std::complex<double> &)>
+template <std::complex<double> func(const std::complex<double> &)>
 using  FrameLib_Complex_Unary = FrameLib_Complex_UnaryOp<Complex_Unary_Functor<func>>;
 
 #endif

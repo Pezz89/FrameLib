@@ -12,7 +12,7 @@ class FrameLib_Convolve final : public FrameLib_Processor
     // Parameter Enums and Info
 
     enum ParameterList { kMaxLength, kMode, kEdgeMode };
-    enum Mode { kReal, kComplex };
+    enum Modes { kReal, kComplex };
     
     struct ParameterInfo : public FrameLib_Parameters::Info { ParameterInfo(); };
 
@@ -20,7 +20,7 @@ public:
 
     // Constructor
     
-    FrameLib_Convolve(FrameLib_Context context, FrameLib_Parameters::Serial *serialisedParameters, FrameLib_Proxy *proxy);
+    FrameLib_Convolve(FrameLib_Context context, const FrameLib_Parameters::Serial *serialisedParameters, FrameLib_Proxy *proxy);
     
     // Info
     
@@ -38,7 +38,7 @@ private:
     
     // Data
     
-    Mode mMode;
+    Modes mMode;
 
     static ParameterInfo sParamInfo;
     

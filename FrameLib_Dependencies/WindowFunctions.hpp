@@ -261,10 +261,9 @@ void window_msinetaper6(T window, uint32_t windowSize, uint32_t generateSize)
 template <class T>
 class IndexedWindowFunctions : public WindowFunctions <T, uint32_t>
 {
-    
 public:
     
-    enum WindowTypes {kWindowRect, kWindowTriangle, kWindowHann, kWindowHamming, kWindowCosine, kWindowBlackman, kWindowBlackman62, kWindowBlackman70, kWindowBlackman74, kWindowBlackman92, kWindowBlackmanHarris, kWindowFlatTop, kWindowKaiser };
+    enum WindowTypes { kWindowRect, kWindowTriangle, kWindowHann, kWindowHamming, kWindowCosine, kWindowBlackman, kWindowBlackman62, kWindowBlackman70, kWindowBlackman74, kWindowBlackman92, kWindowBlackmanHarris, kWindowFlatTop, kWindowKaiser };
     
     IndexedWindowFunctions()
     {
@@ -282,9 +281,9 @@ public:
         WindowFunctions<T, uint16_t>::add(kWindowBlackman92, window_blackman_92);
         WindowFunctions<T, uint16_t>::add(kWindowBlackmanHarris, window_blackman_harris);
 
-        WindowFunctions<T, uint16_t>::add(kWindowFlatTop, window_kaiser);
+        WindowFunctions<T, uint16_t>::add(kWindowFlatTop, window_flat_top);
         
-        WindowFunctions<T, uint16_t>::add(kWindowKaiser, window_flat_top);
+        WindowFunctions<T, uint16_t>::add(kWindowKaiser, window_kaiser);
     }
 };
 

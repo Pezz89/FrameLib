@@ -1,6 +1,6 @@
 
-#ifndef FrameLib_TypeList_h
-#define FrameLib_TypeList_h
+#ifndef FRAMELIB_TYPELIST_H
+#define FRAMELIB_TYPELIST_H
 
 #include "FrameLib_Objects.h"
 #include <utility>
@@ -27,11 +27,11 @@ using FrameLib_ObjectList = detail::FrameLib_Typelist<
 
 // Filters
 
-FrameLib_0dfSVF,
+FrameLib_Biquad,
+FrameLib_BiquadCoeff,
 FrameLib_OnePole,
 FrameLib_OnePoleZero,
-FrameLib_Resonant,
-FrameLib_SallenAndKey,
+FrameLib_SVF,
 
 // Generators
 
@@ -58,7 +58,6 @@ FrameLib_SampleRate,
 
 FrameLib_CombineTags,
 FrameLib_FilterTags,
-FrameLib_GetParam,
 FrameLib_Tag,
 FrameLib_Untag,
 
@@ -71,7 +70,7 @@ FrameLib_Select,
 // Schedulers
 
 FrameLib_AudioTrigger,
-FrameLib_Future,
+FrameLib_Chain,
 FrameLib_Interval,
 FrameLib_Once,
 FrameLib_PerBlock,
@@ -102,10 +101,9 @@ FrameLib_StreamID,
 
 // Time Smoothing
 
-FrameLib_EWMA,
-FrameLib_EWMSD,
 FrameLib_FrameDelta,
 FrameLib_Lag,
+FrameLib_MovingAverage,
 FrameLib_TimeMean,
 FrameLib_TimeMedian,
 FrameLib_TimeStdDev,
@@ -119,7 +117,7 @@ FrameLib_Timer,
 
 // Vector
 
-FrameLib_AccumPoint,
+FrameLib_AccumPos,
 FrameLib_Chop,
 FrameLib_Join,
 FrameLib_MedianFilter,
@@ -134,8 +132,8 @@ FrameLib_Split,
 FrameLib_Subframe,
 
 FrameLib_Length,
-FrameLib_VectorMin,
-FrameLib_VectorMax,
+FrameLib_FrameMin,
+FrameLib_FrameMax,
 FrameLib_Sum,
 FrameLib_Product,
 FrameLib_Mean,
@@ -149,8 +147,8 @@ FrameLib_Kurtosis,
 FrameLib_Flatness,
 FrameLib_RMS,
 FrameLib_Crest,
-FrameLib_VectorArgMin,
-FrameLib_VectorArgMax,
+FrameLib_FrameMinPosition,
+FrameLib_FrameMaxPosition,
 FrameLib_NanFilter,
 
 // Unary Operators
@@ -189,8 +187,8 @@ FrameLib_Erfc,
 
 // Binary  Operators
 
-FrameLib_Plus,
-FrameLib_Minus,
+FrameLib_Add,
+FrameLib_Subtract,
 FrameLib_Multiply,
 FrameLib_Divide,
 
@@ -244,8 +242,8 @@ FrameLib_Poltocar,
 
 // Complex Binary Operators
 
-FrameLib_Complex_Plus,
-FrameLib_Complex_Minus,
+FrameLib_Complex_Add,
+FrameLib_Complex_Subtract,
 FrameLib_Complex_Multiply,
 FrameLib_Complex_Divide,
 FrameLib_Complex_Pow,
@@ -256,4 +254,4 @@ FrameLib_Info,
 FrameLib_Read
 >;
 
-#endif /* FrameLib_TypeList_h */
+#endif /* FRAMELIB_TYPELIST_H */

@@ -3,11 +3,11 @@
 
 // Filters
 
-#include "FrameLib_0dfSVF.h"
+#include "FrameLib_Biquad.h"
+#include "FrameLib_BiquadCoeff.h"
 #include "FrameLib_OnePole.h"
 #include "FrameLib_OnePoleZero.h"
-#include "FrameLib_Resonant.h"
-#include "FrameLib_SallenAndKey.h"
+#include "FrameLib_SVF.h"
 
 // Generators
 
@@ -34,7 +34,6 @@
 
 #include "FrameLib_CombineTags.h"
 #include "FrameLib_FilterTags.h"
-#include "FrameLib_GetParam.h"
 #include "FrameLib_Tag.h"
 #include "FrameLib_Untag.h"
 
@@ -47,7 +46,7 @@
 // Schedulers
 
 #include "FrameLib_AudioTrigger.h"
-#include "FrameLib_Future.h"
+#include "FrameLib_Chain.h"
 #include "FrameLib_Interval.h"
 #include "FrameLib_Once.h"
 #include "FrameLib_PerBlock.h"
@@ -80,10 +79,9 @@
 
 // Time Smoothing
 
-#include "FrameLib_EWMA.h"
-#include "FrameLib_EWMSD.h"
 #include "FrameLib_FrameDelta.h"
 #include "FrameLib_Lag.h"
+#include "FrameLib_MovingAverage.h"
 #include "FrameLib_TimeMean.h"
 #include "FrameLib_TimeMedian.h"
 #include "FrameLib_TimeStdDev.h"
@@ -97,7 +95,7 @@
 
 // Vector
 
-#include "FrameLib_AccumPoint.h"
+#include "FrameLib_AccumPos.h"
 #include "FrameLib_Chop.h"
 #include "FrameLib_Join.h"
 #include "FrameLib_MedianFilter.h"
@@ -130,8 +128,9 @@
 
 // Buffer
 
+#include "pd_buffer.h"
 #include "FrameLib_Read.h"
-#include "PD_Specific/pd_buffer.h"
+#include "FrameLib_Info.h"
 
 // PD Read Class
 
@@ -156,9 +155,14 @@ class FrameLib_PDClass_Read : public FrameLib_PDClass_Expand<FrameLib_Read>
             mBuffer = pd_buffer();
         };
         
-        void read(double *output, const double *positions, unsigned long size, long chan, InterpType interpType) override
+        void read(double *output, const double *positions, unsigned long size, long chan, InterpType interp, EdgeType edges, bool bound) override
         {
-            mBuffer.read(output, positions, size, 1.0, interpType);
+            mBuffer.read(output, positions, size, 1.0, interp, edges, bound);
+        }
+        
+        FrameLib_Read::Proxy *clone() const override
+        {
+            return new ReadProxy(*this);
         }
         
     private:
@@ -171,7 +175,8 @@ public:
     
     // Constructor
     
-    FrameLib_PDClass_Read(t_symbol *s, long argc, t_atom *argv) : FrameLib_PDClass(s, argc, argv, new ReadProxy()) {}
+    FrameLib_PDClass_Read(t_symbol *s, long argc, t_atom *argv)
+    : FrameLib_PDClass(s, argc, argv, new ReadProxy()) {}
 };
 
 // PD Expression Classes
@@ -180,7 +185,6 @@ public:
 
 class ArgumentParser
 {
-    
 public:
     
     ArgumentParser(t_symbol *s, long argc, t_atom *argv, bool complex) : mSymbol(s), mComplex(complex)
@@ -309,12 +313,12 @@ extern "C" void framelib_pd_setup(void)
 {
     // Filters
     
-    FrameLib_PDClass_Expand<FrameLib_0dfSVF>::makeClass("fl.0dfsvf~");
+    FrameLib_PDClass_Expand<FrameLib_Biquad>::makeClass("fl.biquad~");
+    FrameLib_PDClass_Expand<FrameLib_BiquadCoeff>::makeClass("fl.biquadcoeff~");
     FrameLib_PDClass_Expand<FrameLib_OnePole>::makeClass("fl.onepole~");
     FrameLib_PDClass_Expand<FrameLib_OnePoleZero>::makeClass("fl.onepolezero~");
-    FrameLib_PDClass_Expand<FrameLib_Resonant>::makeClass("fl.resonant~");
-    FrameLib_PDClass_Expand<FrameLib_SallenAndKey>::makeClass("fl.sallenkey~");
-  
+    FrameLib_PDClass_Expand<FrameLib_SVF>::makeClass("fl.svf~");
+
     // Generators
     
     FrameLib_PDClass_Expand<FrameLib_Gaussian>::makeClass("fl.gaussian~");
@@ -340,7 +344,6 @@ extern "C" void framelib_pd_setup(void)
     
     FrameLib_PDClass_Expand<FrameLib_CombineTags>::makeClass("fl.combinetags~");
     FrameLib_PDClass_Expand<FrameLib_FilterTags>::makeClass("fl.filtertags~");
-    FrameLib_PDClass_Expand<FrameLib_GetParam>::makeClass("fl.getparam~");
     FrameLib_PDClass_Expand<FrameLib_Tag>::makeClass("fl.tag~");
     FrameLib_PDClass_Expand<FrameLib_Untag>::makeClass("fl.untag~");
     
@@ -353,7 +356,7 @@ extern "C" void framelib_pd_setup(void)
     // Schedulers
     
     FrameLib_PDClass_Expand<FrameLib_AudioTrigger>::makeClass("fl.audiotrigger~");
-    FrameLib_PDClass_Expand<FrameLib_Future>::makeClass("fl.future~");
+    FrameLib_PDClass_Expand<FrameLib_Chain>::makeClass("fl.chain~");
     FrameLib_PDClass_Expand<FrameLib_Interval>::makeClass("fl.interval~");
     FrameLib_PDClass_Expand<FrameLib_Once>::makeClass("fl.once~");
     FrameLib_PDClass_Expand<FrameLib_PerBlock>::makeClass("fl.perblock~");
@@ -384,10 +387,9 @@ extern "C" void framelib_pd_setup(void)
     
     // Time Smoothing
     
-    FrameLib_PDClass_Expand<FrameLib_EWMA>::makeClass("fl.ewma~");
-    FrameLib_PDClass_Expand<FrameLib_EWMSD>::makeClass("fl.ewmsd~");
     FrameLib_PDClass_Expand<FrameLib_FrameDelta>::makeClass("fl.framedelta~");
     FrameLib_PDClass_Expand<FrameLib_Lag>::makeClass("fl.lag~");
+    FrameLib_PDClass_Expand<FrameLib_MovingAverage>::makeClass("fl.movingaverage~");
     FrameLib_PDClass_Expand<FrameLib_TimeMean>::makeClass("fl.timemean~");
     FrameLib_PDClass_Expand<FrameLib_TimeMedian>::makeClass("fl.timemedian~");
     FrameLib_PDClass_Expand<FrameLib_TimeStdDev>::makeClass("fl.timestddev~");
@@ -401,7 +403,7 @@ extern "C" void framelib_pd_setup(void)
     
     // Vector
     
-    FrameLib_PDClass_Expand<FrameLib_AccumPoint>::makeClass("fl.accumpoint~");
+    FrameLib_PDClass_Expand<FrameLib_AccumPos>::makeClass("fl.accumpos~");
     FrameLib_PDClass_Expand<FrameLib_Chop>::makeClass("fl.chop~");
     FrameLib_PDClass_Expand<FrameLib_Join>::makeClass("fl.join~");
     FrameLib_PDClass_Expand<FrameLib_MedianFilter>::makeClass("fl.medianfilter~");
@@ -417,13 +419,13 @@ extern "C" void framelib_pd_setup(void)
     FrameLib_PDClass_Expand<FrameLib_Subframe>::makeClass("fl.subframe~");
 
     FrameLib_PDClass_Expand<FrameLib_Length>::makeClass("fl.length~");
-    FrameLib_PDClass_Expand<FrameLib_VectorMin>::makeClass("fl.vmin~");
-    FrameLib_PDClass_Expand<FrameLib_VectorMax>::makeClass("fl.vmax~");
+    FrameLib_PDClass_Expand<FrameLib_FrameMin>::makeClass("fl.framemin~");
+    FrameLib_PDClass_Expand<FrameLib_FrameMax>::makeClass("fl.framemax~");
     FrameLib_PDClass_Expand<FrameLib_Sum>::makeClass("fl.sum~");
     FrameLib_PDClass_Expand<FrameLib_Product>::makeClass("fl.product~");
     FrameLib_PDClass_Expand<FrameLib_Mean>::makeClass("fl.mean~");
-    FrameLib_PDClass_Expand<FrameLib_GeometricMean>::makeClass("fl.geometricmean~");
-    FrameLib_PDClass_Expand<FrameLib_StandardDeviation>::makeClass("fl.standarddeviation~");
+    FrameLib_PDClass_Expand<FrameLib_GeometricMean>::makeClass("fl.geomean~");
+    FrameLib_PDClass_Expand<FrameLib_StandardDeviation>::makeClass("fl.stddev~");
 
     FrameLib_PDClass_Expand<FrameLib_Centroid>::makeClass("fl.centroid~");
     FrameLib_PDClass_Expand<FrameLib_Spread>::makeClass("fl.spread~");
@@ -432,8 +434,8 @@ extern "C" void framelib_pd_setup(void)
     FrameLib_PDClass_Expand<FrameLib_Flatness>::makeClass("fl.flatness~");
     FrameLib_PDClass_Expand<FrameLib_RMS>::makeClass("fl.rms~");
     FrameLib_PDClass_Expand<FrameLib_Crest>::makeClass("fl.crest~");
-    FrameLib_PDClass_Expand<FrameLib_VectorArgMin>::makeClass("fl.argmin~");
-    FrameLib_PDClass_Expand<FrameLib_VectorArgMax>::makeClass("fl.argmax~");
+    FrameLib_PDClass_Expand<FrameLib_FrameMinPosition>::makeClass("fl.minpos~");
+    FrameLib_PDClass_Expand<FrameLib_FrameMaxPosition>::makeClass("fl.maxpos~");
     FrameLib_PDClass_Expand<FrameLib_NanFilter>::makeClass("fl.nanfilter~");
 
     // Unary Operators
@@ -472,8 +474,8 @@ extern "C" void framelib_pd_setup(void)
     
     // Binary  Operators
     
-    FrameLib_PDClass_Expand<FrameLib_Plus, kAllInputs>::makeClass("fl.+~");
-    FrameLib_PDClass_Expand<FrameLib_Minus, kAllInputs>::makeClass("fl.-~");
+    FrameLib_PDClass_Expand<FrameLib_Add, kAllInputs>::makeClass("fl.+~");
+    FrameLib_PDClass_Expand<FrameLib_Subtract, kAllInputs>::makeClass("fl.-~");
     FrameLib_PDClass_Expand<FrameLib_Multiply, kAllInputs>::makeClass("fl.*~");
     FrameLib_PDClass_Expand<FrameLib_Divide, kAllInputs>::makeClass("fl./~");
     
@@ -504,37 +506,39 @@ extern "C" void framelib_pd_setup(void)
     // Expressions
     
     FrameLib_PDClass_Expression::makeClass("fl.expr~");
-    FrameLib_PDClass_ComplexExpression::makeClass("fl.complexexpr~");
+    FrameLib_PDClass_ComplexExpression::makeClass("fl.complex.expr~");
     
     // Complex Unary Operators
     
-    FrameLib_PDClass_Expand<FrameLib_Complex_Cos>::makeClass("fl.complexcos~");
-    FrameLib_PDClass_Expand<FrameLib_Complex_Sin>::makeClass("fl.complexsin~");
-    FrameLib_PDClass_Expand<FrameLib_Complex_Tan>::makeClass("fl.complextan~");
-    FrameLib_PDClass_Expand<FrameLib_Complex_Cosh>::makeClass("fl.complexcosh~");
-    FrameLib_PDClass_Expand<FrameLib_Complex_Sinh>::makeClass("fl.complexsinh~");
-    FrameLib_PDClass_Expand<FrameLib_Complex_Tanh>::makeClass("fl.complextanh~");
+    FrameLib_PDClass_Expand<FrameLib_Complex_Cos>::makeClass("fl.complex.cos~");
+    FrameLib_PDClass_Expand<FrameLib_Complex_Sin>::makeClass("fl.complex.sin~");
+    FrameLib_PDClass_Expand<FrameLib_Complex_Tan>::makeClass("fl.complex.tan~");
+    FrameLib_PDClass_Expand<FrameLib_Complex_Cosh>::makeClass("fl.complex.cosh~");
+    FrameLib_PDClass_Expand<FrameLib_Complex_Sinh>::makeClass("fl.complex.sinh~");
+    FrameLib_PDClass_Expand<FrameLib_Complex_Tanh>::makeClass("fl.complex.tanh~");
 
-    FrameLib_PDClass_Expand<FrameLib_Complex_Log>::makeClass("fl.complexlog~");
-    FrameLib_PDClass_Expand<FrameLib_Complex_Log10>::makeClass("fl.complexlog10~");
-    FrameLib_PDClass_Expand<FrameLib_Complex_Exp>::makeClass("fl.complexexp~");
+    FrameLib_PDClass_Expand<FrameLib_Complex_Log>::makeClass("fl.complex.log~");
+    FrameLib_PDClass_Expand<FrameLib_Complex_Log10>::makeClass("fl.complex.log10~");
+    FrameLib_PDClass_Expand<FrameLib_Complex_Exp>::makeClass("fl.complex.exp~");
 
-    FrameLib_PDClass_Expand<FrameLib_Complex_Sqrt>::makeClass("fl.complexsqrt~");
-    FrameLib_PDClass_Expand<FrameLib_Complex_Conj>::makeClass("fl.complexconj~");
+    FrameLib_PDClass_Expand<FrameLib_Complex_Sqrt>::makeClass("fl.complex.sqrt~");
+    FrameLib_PDClass_Expand<FrameLib_Complex_Conj>::makeClass("fl.complex.conj~");
     
     FrameLib_PDClass_Expand<FrameLib_Cartopol>::makeClass("fl.cartopol~");
     FrameLib_PDClass_Expand<FrameLib_Poltocar>::makeClass("fl.poltocar~");
     
     // Complex Binary Operators
     
-    FrameLib_PDClass_Expand<FrameLib_Complex_Plus, kAllInputs>::makeClass("fl.complexplus~");
-    FrameLib_PDClass_Expand<FrameLib_Complex_Minus, kAllInputs>::makeClass("fl.complexminus~");
-    FrameLib_PDClass_Expand<FrameLib_Complex_Multiply, kAllInputs>::makeClass("fl.complexmultiply~");
-    FrameLib_PDClass_Expand<FrameLib_Complex_Divide, kAllInputs>::makeClass("fl.complexdivide~");
-    FrameLib_PDClass_Expand<FrameLib_Complex_Pow, kAllInputs>::makeClass("fl.complexpow~");
+    FrameLib_PDClass_Expand<FrameLib_Complex_Add, kAllInputs>::makeClass("fl.complex.plus~");
+    FrameLib_PDClass_Expand<FrameLib_Complex_Subtract, kAllInputs>::makeClass("fl.complex.minus~");
+    FrameLib_PDClass_Expand<FrameLib_Complex_Multiply, kAllInputs>::makeClass("fl.complex.times~");
+    FrameLib_PDClass_Expand<FrameLib_Complex_Divide, kAllInputs>::makeClass("fl.complex.divide~");
+    FrameLib_PDClass_Expand<FrameLib_Complex_Pow, kAllInputs>::makeClass("fl.complex.pow~");
 
     // Buffer
     
-    FrameLib_PDClass_Expand<FrameLib_Complex_Plus, kAllInputs>::makeClass("fl.info~");
+    // TODO - info is not correct
+    
+    FrameLib_PDClass_Expand<FrameLib_Info, kAllInputs>::makeClass("fl.info~");
     FrameLib_PDClass_Read::makeClass<FrameLib_PDClass_Read>("fl.read~");
 }

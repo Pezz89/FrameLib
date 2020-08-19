@@ -1,13 +1,29 @@
 import os
+import re
 from FrameLibDocs.utils import cd_up
+from FrameLibDocs.variables import package_root
 
 
-def main(root):
+def try_integer(s):
+    try:
+        return int(s)
+    except ValueError:
+        return s
+
+
+def alphanum_key(s):
+    """ 
+    Turn a string into a list of string and number chunks.
+    """
+    return [try_integer(c) for c in re.split("([0-9]+)", s)]
+
+
+def main():
     # Directory stuff
-    dir_path = root
-    dir_path = os.path.join(cd_up(root, 2), "Current Test Version", "FrameLib")
-    tutorial_path = os.path.join(dir_path, "docs", "tutorial-patchers")
-    coll_output_path = os.path.join(tutorial_path, "tutorial_names.txt")
+    tutorial_path = os.path.join(
+        package_root, "Current Test Version", "FrameLib", "docs", "tutorial-patchers"
+    )
+    coll_output_path = os.path.join(tutorial_path, "FL_tutorial_names.txt")
 
     # If dir doesnt exist make, otherwise edit existing
     coll = open(coll_output_path, "w+")
@@ -25,7 +41,7 @@ def main(root):
     for item in all_files:
         if item.startswith("_"):
             tutorial_names.append(item)
-    tutorial_names.sort()
+    tutorial_names.sort(key=alphanum_key)
 
     # Write the contents of tutorial_names to the coll with some f strings
     idx = 0

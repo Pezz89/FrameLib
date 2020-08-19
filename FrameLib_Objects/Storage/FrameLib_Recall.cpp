@@ -3,7 +3,8 @@
 
 // Constructor / Destructor
 
-FrameLib_Recall::FrameLib_Recall(FrameLib_Context context, FrameLib_Parameters::Serial *serialisedParameters, FrameLib_Proxy *proxy) : FrameLib_Processor(context, proxy, &sParamInfo, 1, 1)
+FrameLib_Recall::FrameLib_Recall(FrameLib_Context context, const FrameLib_Parameters::Serial *serialisedParameters, FrameLib_Proxy *proxy)
+: FrameLib_Processor(context, proxy, &sParamInfo, 1, 1)
 {
     mParameters.addString(kName, "name", 0);
     mParameters.setInstantiation();
@@ -27,21 +28,20 @@ FrameLib_Recall::~FrameLib_Recall()
 
 std::string FrameLib_Recall::objectInfo(bool verbose)
 {
-    return formatInfo("Recall a vector frame from named memory for use: The second output can be used to control ordering/synchronisation.",
-                   "Recall a vector frame from named memory for use.", verbose);
+    return formatInfo("Recall a remotely stored frame for use: "
+                      "The frame to be recalled is determined by the name parameter. "
+                      "The ordering input can be used to explicitly control ordering between related objects.",
+                      "Recall a remotely stored frame for use.", verbose);
 }
 
 std::string FrameLib_Recall::inputInfo(unsigned long idx, bool verbose)
 {
-    if (idx)
-        return formatInfo("Synchronisation Input - use to control ordering", "Synchronisation Input", verbose);
-    else
-        return formatInfo("Trigger Input - triggers recall", "Trigger Input", verbose);
+    return formatInfo("Trigger Input - triggers recall", "Trigger Input", verbose);
 }
 
 std::string FrameLib_Recall::outputInfo(unsigned long idx, bool verbose)
 {
-    return "Frame Output";
+    return "Output";
 }
 
 // Stream Awareness
@@ -58,7 +58,7 @@ FrameLib_Recall::ParameterInfo FrameLib_Recall::sParamInfo;
 
 FrameLib_Recall::ParameterInfo::ParameterInfo()
 {
-    add("Sets the name of the memory location to use.");
+    add("Sets the name of the storage to use.");
 }
 
 // Process
@@ -69,7 +69,7 @@ void FrameLib_Recall::process()
 
     // Threadsafety
     
-    FrameLib_LocalAllocator::Storage::Access access(mStorage);
+    FrameLib_ContextAllocator::Storage::Access access(mStorage);
 
     // Get types and size
     
