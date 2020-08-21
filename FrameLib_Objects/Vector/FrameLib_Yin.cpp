@@ -7,7 +7,7 @@ Implementation of the YIN fundamental frequency (f0) estimation algorithm, as de
 
 // Constructor
 
-FrameLib_Yin::FrameLib_Yin(FrameLib_Context context, FrameLib_Parameters::Serial *serialisedParameters, FrameLib_Proxy *proxy) : FrameLib_Processor(context, proxy, &sParamInfo, 1, 4), mProcessor(*this)
+FrameLib_Yin::FrameLib_Yin(FrameLib_Context context, const FrameLib_Parameters::Serial *serialisedParameters, FrameLib_Proxy *proxy) : FrameLib_Processor(context, proxy, &sParamInfo, 1, 4), mProcessor(*this)
 {
 	mParameters.addDouble(kF0Min, "f0Min", 0.0, 0);
 	// Maximum frequency must be one sample less than the nyquist rate, so that all frequencies can be properly interpolated
@@ -114,7 +114,7 @@ void FrameLib_Yin::differenceFunction(const double * x, double * df, unsigned in
 	std::transform(x, x + N, x_cumsum + 1, [](const double val) {return std::pow(val, 2.0);});
 	std::partial_sum(x_cumsum+1, x_cumsum + 1 + N, x_cumsum + 1);
 
-	unsigned long convSize = mProcessor.convolved_size(N, N, EdgeMode::kEdgeLinear);
+	uintptr_t convSize = mProcessor.convolved_size(N, N, EdgeMode::kEdgeLinear);
 	auto conv = alloc<double>(convSize);
 
 	// TODO: Replace with correlation function

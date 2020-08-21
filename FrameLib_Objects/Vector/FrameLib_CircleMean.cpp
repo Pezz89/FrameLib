@@ -7,7 +7,7 @@ Implementation of the YIN fundamental frequency (f0) estimation algorithm, as de
 
 // Constructor
 
-FrameLib_CircleMean::FrameLib_CircleMean(FrameLib_Context context, FrameLib_Parameters::Serial *serialisedParameters, FrameLib_Proxy *proxy) : FrameLib_Processor(context, proxy, &sParamInfo, 1, 2)
+FrameLib_CircleMean::FrameLib_CircleMean(FrameLib_Context context, const FrameLib_Parameters::Serial *serialisedParameters, FrameLib_Proxy *proxy) : FrameLib_Processor(context, proxy, &sParamInfo, 1, 2)
 {
 	mParameters.addDouble(kRangeMax, "RangeMax", 360.0, 0);
 	mParameters.setMin(0.0);
@@ -55,11 +55,11 @@ void FrameLib_CircleMean::process()
 	auto in_270 = alloc<double>(sizeIn);
 	auto diffs = alloc<double>(4);
 	auto absDiffs = alloc<double>(4);
-	double avg, avg90, avg180, avg270, diff0, diff90, diff180, diff270;
+	double avg, avg90, avg180, avg270;
 	int argMinInd;
 
 	auto range = mParameters.getValue(kRangeMax);
-	for (int i = 0; i < sizeIn; i++) {
+	for (unsigned int i = 0; i < sizeIn; i++) {
 		in_180[i] = fmod(fmod((input[i] - (range*0.5)), range) + range, range);
 		in_90[i] = fmod(fmod((input[i] - (range*0.33)), range) + range, range);
 		in_270[i] = fmod(fmod((input[i] - (range*0.66)), range) + range, range);
@@ -70,7 +70,7 @@ void FrameLib_CircleMean::process()
 		avg90 = fmod(fmod(statMean(in_90, sizeIn) + (range*0.33), range) + range, range);
 		avg270 = fmod(fmod(statMean(in_270, sizeIn) + (range*0.66), range) + range, range);
 		avg = statMean(input, sizeIn);
-		for (int i = 0; i < sizeIn; i++) {
+		for (unsigned int i = 0; i < sizeIn; i++) {
 			diffs[0] = avg - input[i];
 			diffs[1] = avg90 - in_90[i];
 			diffs[2] = avg180 - in_180[i];
@@ -79,7 +79,7 @@ void FrameLib_CircleMean::process()
 				absDiffs[j] = abs(diffs[j]);
 			}
 
-			argMinInd = (int) statArgMin(absDiffs, 4);
+			argMinInd = (int) statMinPosition(absDiffs, 4);
 			*output2 = (double)argMinInd;
 			output[i] = diffs[argMinInd];
 		}
