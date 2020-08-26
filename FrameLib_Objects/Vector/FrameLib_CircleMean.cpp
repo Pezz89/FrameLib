@@ -48,45 +48,46 @@ void FrameLib_CircleMean::process()
     requestOutputSize(0, sizeIn);
 	requestOutputSize(1, 1);
     allocateOutputs();
+
     double *output = getOutput(0, &sizeOut);
 	double *output2 = getOutput(1, &sizeOut2);
-	auto in_180 = alloc<double>(sizeIn);
-	auto in_90 = alloc<double>(sizeIn);
-	auto in_270 = alloc<double>(sizeIn);
-	auto diffs = alloc<double>(4);
-	auto absDiffs = alloc<double>(4);
-	double avg, avg90, avg180, avg270;
+	
+	auto in_angle = alloc<double>(sizeIn);
+	auto cos_angle = alloc<double>(sizeIn);
+	auto sin_angle = alloc<double>(sizeIn);
+
+	auto diffs = alloc<double>(2);
+	auto absDiffs = alloc<double>(2);
+	double avg;
 	int argMinInd;
 
 	auto range = mParameters.getValue(kRangeMax);
-	for (unsigned int i = 0; i < sizeIn; i++) {
-		in_180[i] = fmod(fmod((input[i] - (range*0.5)), range) + range, range);
-		in_90[i] = fmod(fmod((input[i] - (range*0.33)), range) + range, range);
-		in_270[i] = fmod(fmod((input[i] - (range*0.66)), range) + range, range);
-	}
+
     if (output)
     {
-		avg180 = fmod(fmod(statMean(in_180, sizeIn) + (range*0.5), range) + range, range);
-		avg90 = fmod(fmod(statMean(in_90, sizeIn) + (range*0.33), range) + range, range);
-		avg270 = fmod(fmod(statMean(in_270, sizeIn) + (range*0.66), range) + range, range);
-		avg = statMean(input, sizeIn);
+		for (unsigned int i = 0; i < sizeIn; i++) {
+			in_angle[i] = input[i] * (360.0 / range);
+			in_angle[i] = in_angle[i] * (M_PI / 180);
+			cos_angle[i] = cos(in_angle[i]);
+			sin_angle[i] = sin(in_angle[i]);
+		}
+		avg = atan2(statMean(sin_angle, sizeIn), statMean(cos_angle, sizeIn));
+		avg *= (180 / M_PI);
+		avg = avg / (360 / range);
+
 		for (unsigned int i = 0; i < sizeIn; i++) {
 			diffs[0] = avg - input[i];
-			diffs[1] = avg90 - in_90[i];
-			diffs[2] = avg180 - in_180[i];
-			diffs[3] = avg270 - in_270[i];
-			for (int j = 0; j < 4; j++) {
+			diffs[1] = avg - (input[i] - range);
+			for (int j = 0; j < 2; j++) {
 				absDiffs[j] = abs(diffs[j]);
 			}
 
-			argMinInd = (int) statMinPosition(absDiffs, 4);
-			*output2 = (double)argMinInd;
-			output[i] = diffs[argMinInd];
+			argMinInd = (int) statMinPosition(absDiffs, 2);
+			*output2 = avg;
+			output[i] = -diffs[argMinInd];
 		}
     }
 	dealloc(diffs);
 	dealloc(absDiffs);
-	dealloc(in_180);
-	dealloc(in_90);
-	dealloc(in_270);
+
 }
