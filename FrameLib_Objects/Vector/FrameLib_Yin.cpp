@@ -72,6 +72,7 @@ void FrameLib_Yin::process()
 {
 	unsigned long sizeIn, sizeOut, sizeCMNDF;
     const double *input = getInput(0, &sizeIn);
+	double * tau_out;
 
 	// Add the extra sample removed during parameter clipping to allow all frequencies to be interpolated
 	const unsigned int tau_min = (unsigned int)floor(mSamplingRate / mParameters.getValue(kF0Max));
@@ -79,26 +80,26 @@ void FrameLib_Yin::process()
 
     requestOutputSize(0, 1);
 	requestOutputSize(1, 1);
-	requestOutputSize(2, tau_max + 1);
-	requestOutputSize(3, 1);
+	//requestOutputSize(2, tau_max + 1);
+	//requestOutputSize(3, 1);
     allocateOutputs();
     double *output = getOutput(0, &sizeOut);
 	double *harmonicity = getOutput(1, &sizeOut);
 
 	// Output cmndf function and tau to plot and debug in real-time
-	double *cmndf = getOutput(2, &sizeCMNDF);
-	double *tau_out = getOutput(3, &sizeOut);
+	//double *cmndf = getOutput(2, &sizeCMNDF);
+	//double *tau_out = getOutput(3, &sizeOut);
 
     if (output)
     {
 		auto w_len = sizeIn - tau_max;
 		auto df = alloc<double>(tau_max+1);
-		//auto cmndf = alloc<double>(tau_max+1);
+		auto cmndf = alloc<double>(tau_max+1);
 		this->differenceFunction_slow(input, df, w_len, tau_max);
 		this->cmndf(df, cmndf, tau_max);
 		this->getPitch(cmndf, df, output, harmonicity, tau_min, tau_max, mParameters.getValue(kHarmoThresh), tau_out);
 		dealloc(df);
-		//dealloc(cmndf);
+		dealloc(cmndf);
     }
 
 }

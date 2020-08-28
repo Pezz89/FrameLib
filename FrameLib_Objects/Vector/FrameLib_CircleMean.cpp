@@ -67,13 +67,14 @@ void FrameLib_CircleMean::process()
     {
 		for (unsigned int i = 0; i < sizeIn; i++) {
 			in_angle[i] = input[i] * (360.0 / range);
-			in_angle[i] = in_angle[i] * (M_PI / 180);
+			in_angle[i] = in_angle[i] * (M_PI / 180.0);
 			cos_angle[i] = cos(in_angle[i]);
 			sin_angle[i] = sin(in_angle[i]);
 		}
-		avg = atan2(statMean(sin_angle, sizeIn), statMean(cos_angle, sizeIn));
-		avg *= (180 / M_PI);
-		avg = avg / (360 / range);
+		avg = atan2(statSum(sin_angle, sizeIn), statSum(cos_angle, sizeIn));
+		avg *= (180.0 / M_PI);
+		avg = this->to_positive_angle(avg);
+		avg = avg / (360.0 / range);
 
 		for (unsigned int i = 0; i < sizeIn; i++) {
 			diffs[0] = avg - input[i];

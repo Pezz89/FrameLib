@@ -32,6 +32,12 @@ private:
     
     // Process
 	static ParameterInfo sParamInfo;
+	double to_positive_angle(double angle)
+	{
+		angle = fmod(angle, 360.0);
+		if (angle < 0.0) angle += 360.0;
+		return angle;
+	}
 
     void process() override;
 };
