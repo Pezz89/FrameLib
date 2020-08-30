@@ -1,5 +1,5 @@
 
-#ifndef FRAMELIBE_CCIRCLEMEAN_H
+#ifndef FRAMELIB_CIRCLEMEAN_H
 #define FRAMELIB_CIRCLEMEAN_H
 
 #include "FrameLib_DSP.h"
@@ -38,8 +38,27 @@ private:
 		if (angle < 0.0) angle += 360.0;
 		return angle;
 	}
+	double last_avg;
 
     void process() override;
+	template<typename T> T sign(T t) { return t > T(0) ? T(1) : T(-1); };
+	template<typename T> T py_mod(T n, T a) {
+		T r = fmod(n, a);
+		if (r * sign(a) < T(0)) r += a;
+		return r;
+	};
+	template<typename T> T distance(double len_my_list, T idx_1, T idx_2) {
+		T ret = 0.0;
+		double distances[2] = { py_mod(idx_1 - idx_2, len_my_list), py_mod(idx_2 - idx_1, len_my_list) };
+		int selection = statMinPosition(distances, 2);	
+		if (selection == 1) {
+			ret = -distances[selection];
+		}
+		else {
+			ret = distances[selection];
+		}
+		return ret;
+	};
 };
 
 #endif

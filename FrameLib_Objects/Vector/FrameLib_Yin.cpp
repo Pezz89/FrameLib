@@ -72,7 +72,7 @@ void FrameLib_Yin::process()
 {
 	unsigned long sizeIn, sizeOut, sizeCMNDF;
     const double *input = getInput(0, &sizeIn);
-	double * tau_out;
+	// double * tau_out;
 
 	// Add the extra sample removed during parameter clipping to allow all frequencies to be interpolated
 	const unsigned int tau_min = (unsigned int)floor(mSamplingRate / mParameters.getValue(kF0Max));
@@ -97,7 +97,8 @@ void FrameLib_Yin::process()
 		auto cmndf = alloc<double>(tau_max+1);
 		this->differenceFunction_slow(input, df, w_len, tau_max);
 		this->cmndf(df, cmndf, tau_max);
-		this->getPitch(cmndf, df, output, harmonicity, tau_min, tau_max, mParameters.getValue(kHarmoThresh), tau_out);
+		// this->getPitch(cmndf, df, output, harmonicity, tau_min, tau_max, mParameters.getValue(kHarmoThresh), tau_out);
+		this->getPitch(cmndf, df, output, harmonicity, tau_min, tau_max, mParameters.getValue(kHarmoThresh));
 		dealloc(df);
 		dealloc(cmndf);
     }
@@ -168,7 +169,7 @@ void FrameLib_Yin::cmndf(double * df, double * cmndf, unsigned int tau_max)
 	cmndf[0] = 1.0;
 }
 
-void FrameLib_Yin::getPitch(double * cmndf, double * df, double * f, double * harm, const unsigned int tau_min, const unsigned int tau_max, double harmo_th, double * tau_out)
+void FrameLib_Yin::getPitch(double * cmndf, double * df, double * f, double * harm, const unsigned int tau_min, const unsigned int tau_max, double harmo_th)
 {
 	unsigned int tau = tau_min;
 	unsigned int best_tau = tau_min;
@@ -221,14 +222,14 @@ void FrameLib_Yin::getPitch(double * cmndf, double * df, double * f, double * ha
 		}
 		tau++;
 	}
-	*tau_out = (double)best_tau;
+	//*tau_out = (double)best_tau;
 	if (tau == tau_max) {
 		// Check for nans as a result of DC signals
 		if (isnan(cmndf[best_tau])) {
 			// TODO: calculate maximum aperiodicity value possible?
 			*harm = 3.0;
 			*f = 0.0;
-			*tau_out = 0.0;
+			//*tau_out = 0.0;
 			return;
 		}
 		*f = best_f;

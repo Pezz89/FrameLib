@@ -3,6 +3,7 @@
 #define FRAMELIB_BINARY_OBJECTS_H
 
 #include "FrameLib_Binary_Template.h"
+#include "../../FrameLib_Dependencies/Statistics.hpp"
 
 #include <functional>
 
@@ -11,6 +12,25 @@
 namespace FrameLib_Binary_Ops
 {
     struct absDiff { double operator()(double x, double y) { return std::abs(x-y); } };
+	template<typename T> T sign(T t) { return t > T(0) ? T(1) : T(-1); };
+	template<typename T> T py_mod(T n, T a) {
+		T r = fmod(n, a);
+		if (r * sign(a) < T(0)) r += a;
+		return r;
+	};
+	template<typename T> T distance(double len_my_list, T idx_1, T idx_2) {
+		T ret = 0.0;
+		double distances[2] = { py_mod(idx_1 - idx_2, len_my_list), py_mod(idx_2 - idx_1, len_my_list) };
+		int selection = statMinPosition(distances, 2);
+		if (selection == 1) {
+			ret = -distances[selection];
+		}
+		else {
+			ret = distances[selection];
+		}
+		return ret;
+	};
+	struct circleDistance { double operator()(double x, double y) { return distance(12.0, x, y); } };
 }
 
 // Binary (operators)
@@ -56,6 +76,10 @@ template<> inline const char *FrameLib_BinaryOp<std::logical_or<double>>::getDes
 template<> inline const char *FrameLib_BinaryOp<FrameLib_Binary_Ops::absDiff>::getDescriptionString()
 { return "Calculates the absolute differences between values in the two input frames"; }
 
+template<> inline const char *FrameLib_BinaryOp<FrameLib_Binary_Ops::circleDistance>::getDescriptionString()
+{
+	return "Calculates the circular distance between values in the two input frames";
+}
 
 // Type definitions
 
@@ -75,6 +99,8 @@ typedef FrameLib_BinaryOp<std::logical_and<double>>     FrameLib_LogicalAnd;
 typedef FrameLib_BinaryOp<std::logical_or<double>>      FrameLib_LogicalOr;
 
 typedef FrameLib_BinaryOp<FrameLib_Binary_Ops::absDiff> FrameLib_Diff;
+
+typedef FrameLib_BinaryOp<FrameLib_Binary_Ops::circleDistance> FrameLib_CircleDistance;
 
 // Binary (functions)
 

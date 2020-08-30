@@ -13,6 +13,7 @@ FrameLib_CircleMean::FrameLib_CircleMean(FrameLib_Context context, const FrameLi
 	mParameters.setMin(0.0);
 	mParameters.setInstantiation();
 	mParameters.set(serialisedParameters);
+	last_avg = 0.0;
 }
 
 FrameLib_CircleMean::ParameterInfo FrameLib_CircleMean::sParamInfo;
@@ -45,7 +46,8 @@ void FrameLib_CircleMean::process()
 {
 	unsigned long sizeIn, sizeOut2, sizeOut;
     const double *input = getInput(0, &sizeIn);
-    requestOutputSize(0, sizeIn);
+    //requestOutputSize(0, sizeIn);
+	requestOutputSize(0, 1);
 	requestOutputSize(1, 1);
     allocateOutputs();
 
@@ -55,11 +57,9 @@ void FrameLib_CircleMean::process()
 	auto in_angle = alloc<double>(sizeIn);
 	auto cos_angle = alloc<double>(sizeIn);
 	auto sin_angle = alloc<double>(sizeIn);
-
-	auto diffs = alloc<double>(2);
-	auto absDiffs = alloc<double>(2);
 	double avg;
 	int argMinInd;
+	double dist;
 
 	auto range = mParameters.getValue(kRangeMax);
 
@@ -76,19 +76,6 @@ void FrameLib_CircleMean::process()
 		avg = this->to_positive_angle(avg);
 		avg = avg / (360.0 / range);
 
-		for (unsigned int i = 0; i < sizeIn; i++) {
-			diffs[0] = avg - input[i];
-			diffs[1] = avg - (input[i] - range);
-			for (int j = 0; j < 2; j++) {
-				absDiffs[j] = abs(diffs[j]);
-			}
-
-			argMinInd = (int) statMinPosition(absDiffs, 2);
-			*output2 = avg;
-			output[i] = -diffs[argMinInd];
-		}
+		*output = avg;
     }
-	dealloc(diffs);
-	dealloc(absDiffs);
-
 }

@@ -23,6 +23,7 @@
     <ClInclude Include="..\..\..\FrameLib_Dependencies\HISSTools_FFT\HISSTools_FFT_Core.h" />
     <ClInclude Include="..\..\..\FrameLib_Objects\Binary\FrameLib_Binary_Objects.h" />
     <ClInclude Include="..\..\..\FrameLib_Objects\Binary\FrameLib_Binary_Template.h" />
+    <ClInclude Include="..\..\..\FrameLib_Objects\Binary\FrameLib_CircleDistance.h" />
     <ClInclude Include="..\..\..\FrameLib_Objects\Buffer\FrameLib_Info.h" />
     <ClInclude Include="..\..\..\FrameLib_Objects\Buffer\FrameLib_Read.h" />
     <ClInclude Include="..\..\..\FrameLib_Objects\Common_Utilities\FrameLib_RandGen.h" />
