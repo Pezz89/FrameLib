@@ -100,6 +100,8 @@ private:
 	double *wrap_history;
 	size_t history_length;
 	double offset = 0.0;
+	double hist_mean = 0.0;
+	double last_samp = 0.0;
 	size_t i = 0;
 	// Process
 	template<typename T> T sign(T t) { return t > T(0) ? T(1) : T(-1); };
@@ -125,17 +127,19 @@ private:
 
 	double distance_unwrap(int len, double idx_1, double idx_2) {
 		double wrapped_res = distance(len, idx_1, idx_2);
-		double wrap_diff = wrapped_res - wrap_history[i-1];
-		if (wrap_diff > (len/2.0)) {
+		double wrap_diff = wrapped_res - last_samp;
+
+		if (wrap_diff > (len / 2.0)) {
 			wrapped_res -= len;
 		} 
 		else if (wrap_diff < -(len / 2.0)) {
 			wrapped_res += len;
 		}
+		last_samp = wrapped_res;
 		wrap_history[i] = wrapped_res;
-		double hist_mean = statMean(wrap_history, history_length);
+		hist_mean = statMean(wrap_history, history_length);
 		wrapped_res -= hist_mean;
-		wrap_history[i] = wrapped_res;
+		//wrap_history[i] = wrapped_res;
 		i++;
 		i %= mParameters.getInt(kDCFilterLength);
 		return wrapped_res;
